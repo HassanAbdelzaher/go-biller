@@ -1,0 +1,174 @@
+syntax = "proto2";
+package billing;
+
+import "google/protobuf/timestamp.proto";
+
+
+enum SERVICE_TYPE {
+    WATER =0;
+    SEWER=1;
+    ELECTRICITY=2;
+    GAS=3;
+    HYDRANT=4;
+    FIRE=5;
+}
+
+
+enum READING_TYPE {
+    ACTUAL =0;
+    AVERAGE=1;//return
+    ESTIMATE=2;//not return
+}
+
+//the entity meter used as entity type for calculation or enabling 
+//while the consump claculated 
+message Meter {
+    required string MeterType = 1;    
+    required string MeterRef = 2;    
+    required int64 Diameter=3;
+    optional int64 ConverterFactor=4;
+}
+
+//used for sub connection calculations and entity calculations
+
+message Connection {
+    required string CType =1;
+    required int64 NoUnits=2;   
+    optional bool IsBulkMeter=3;
+    optional int64 ConnDiameter=4;
+    optional Meter Meter=5;
+    repeated SubConnection SubConnections=99;
+}
+
+
+message SubConnection {
+    required string CType =1;
+    optional double EstimateConsumptionPerUnit=2;
+    optional double ConsumptionPercentage=3;
+    optional int64 NoUnits=4;
+}
+
+
+message Service {
+    required SERVICE_TYPE ServiceType = 1;
+    required Connection Connection=2;
+}
+
+
+message Property {
+    required string PropRef =1;
+    optional string InfoFlag1 =3;
+    optional string InfoFlag2 =4;
+    optional string InfoFlag3 =5;
+    optional string InfoFlag4 =6;
+    optional string InfoFlag5 =7;
+    optional int64 NoRooms=8;   
+    repeated Service Services=99;
+}
+
+message Customer {
+    required string Custkey =1;
+    optional int64 CustType=2;
+    optional bool IsCompany =3;
+    optional string InfoFlag1 =4;
+    optional string InfoFlag2 =5;
+    optional string InfoFlag3 =6;
+    optional string InfoFlag4 =7;
+    optional string InfoFlag5 =8;
+    repeated Property Properties=99;
+}
+
+//is overall all actual or estim consumption for each service
+message Reading {
+    required double Consump=1;
+    required READING_TYPE ReadingType=2;
+    optional double PrReading = 3; 
+    optional double CrReading=4;
+    optional google.protobuf.Timestamp PR_DATE=5;
+    optional google.protobuf.Timestamp CR_DATE=6;
+}
+
+//each service may be has its meter (server meters,fire meters,electrcity meters)
+message ServiceReading {
+    required SERVICE_TYPE ServiceType = 1;
+    required Reading Reading=2;
+}
+// each billing request should have the customer entity and the reading for each service
+message BillRequest{
+    required Customer Customer=1;
+    repeated ServiceReading ServicesReadings=2;
+    required bool IgnoreTimeEffect=3;
+}
+
+//the expected responce is the amount for each service
+message ExtraCharge{
+    optional string DESCRIPTION=1;
+    required string Code=2;
+    required double Amount=3;
+}
+
+message BillResponceItemCtg {
+    required double CType=1;
+    required double Amount=2;
+    optional double TaxAmount=3;
+}
+
+message BillResponceItem{
+    required SERVICE_TYPE ServiceType = 1;
+    repeated BillResponceItemCtg Charges=2;
+    repeated ExtraCharge ExtraCharges=99;
+}
+
+message BillResponce{
+    repeated BillResponceItem Charges=1;
+}
+
+///////////////////////////
+//Tariff
+
+message ServiceTariff{
+    required SERVICE_TYPE ServiceType = 1;
+    required string TarifId = 2;
+}
+
+message Ctg{
+    required string CType =1;
+    repeated ServiceTariff Tariffs=2;
+}
+
+message CtgRequest{
+    repeated Ctg Ctgs=2;
+}
+message ExtraTariffFess {
+    required string Code =1;
+    optional string Description =2;
+    optional double AmountPerMeter=3;
+    optional double AmountPercentage=4;
+    optional double FixedAmount=5;
+}
+
+message TariffBand {
+ required double From =1;
+ required double To=2;
+ required double Constant=3;
+ required double Factor=4;
+}
+
+message Tariff {
+    required string TariffId =1;
+    optional double TaxPercentage=2;
+    repeated ExtraTariffFess ExtraFees=3;
+    repeated TariffBand Bands=4;
+}
+message TariffRequest {
+    repeated Tariff Tariffs=1;
+}
+message Empty {
+}
+service BillingService {
+  rpc Charge (BillRequest) returns (BillResponce) {}
+  rpc SetCtg (CtgRequest) returns (Empty) {}
+  rpc SetTariff (TariffRequest) returns (Empty) {}
+}
+
+////////////////////

@@ -180,6 +180,7 @@ func (s *BillingService) Calc(no_units int64, consump float64, tariff *Tariff) (
 	bCons := make(map[*TariffBand]float64)
 	reminder := uCons
 	for bx := range bands {
+		//log.Println(reminder)
 		band := bands[bx]
 		if uCons < *band.From || reminder <= 0 {
 			bCons[band] = 0
@@ -195,9 +196,14 @@ func (s *BillingService) Calc(no_units int64, consump float64, tariff *Tariff) (
 		bCons[band] = cc
 		reminder = 0
 	}
+	//log.Println("==================")
+	amt = 0
 	for band, cons := range bCons {
-		charge := *band.Constant + *band.Factor*cons
-		amt = amt + charge
+		if cons > 0 {
+			charge := *band.Constant + *band.Factor*cons
+			amt = amt + charge
+		}
+		//log.Println(amt)
 	}
 	amt = float64(no_units) * amt
 	return &amt, nil

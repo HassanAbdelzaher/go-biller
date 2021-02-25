@@ -45,7 +45,6 @@ func getTariff() *Tariff {
 	return &tar
 }
 func TestCalc(t *testing.T) {
-	srv := BillingService{}
 	var no_units int64 = 1
 	var consumps map[float64]float64 = map[float64]float64{}
 	consumps[5] = 3.25
@@ -62,7 +61,7 @@ func TestCalc(t *testing.T) {
 	consumps[100] = 315
 	tar := getTariff()
 	for consump, value := range consumps {
-		amt, err := srv.Calc(no_units, consump, tar)
+		amt, err := Calc(no_units, consump, tar)
 		if err != nil {
 			t.Error(err)
 		}
@@ -77,7 +76,6 @@ func TestCalc(t *testing.T) {
 }
 
 func TestCalc_no_units_3(t *testing.T) {
-	srv := BillingService{}
 	var no_units int64 = 3
 	var consumps map[float64]float64 = map[float64]float64{}
 	consumps[20] = 13
@@ -88,7 +86,7 @@ func TestCalc_no_units_3(t *testing.T) {
 	consumps[200] = 630
 	tar := getTariff()
 	for consump, value := range consumps {
-		amt, err := srv.Calc(no_units, consump, tar)
+		amt, err := Calc(no_units, consump, tar)
 		if err != nil {
 			t.Error(err)
 		}

@@ -1,24 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="" />
+    <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/charge/charge_regular_calc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/charge/entity_type_map.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/charge/is_charge_enable.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/charge/is_charge_enable_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/charge/sample.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tools/tools.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/service.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/service.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/calc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/calc_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/calc_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/service/service.go" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
   <component name="GOROOT" path="C:\Users\hassan\go\go1.16" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="ProjectId" id="1ovTTlQquQKxSPQ6xORB7m6FAho" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="goland.project.structure" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="F:\development\go\go-biller\billing" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -35,8 +66,32 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
     <proxy>direct</proxy>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/charge/charge_regular_calc.go</url>
+          <line>2</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

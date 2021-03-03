@@ -13,11 +13,53 @@ enum SERVICE_TYPE {
     FIRE=5;
 }
 
+enum CONNECTION_STATUS_TYPE {
+    CONNECTED_WITHOUT_METER =0;
+    CONNECTED_WITH_METER=1;
+    DISCONNECTED_WITH_METER=2;
+    DISCONNECTED_WITHOUT_METER=3;
+}
+
 
 enum READING_TYPE {
     ACTUAL =0;
     AVERAGE=1;//return
     ESTIMATE=2;//not return
+}
+
+enum RegularChargePeriod {
+    BILL=1;
+    MONTHLY=2;
+}
+
+enum ENTITY_TYPE {
+    CTG_TYPE=1;
+    CUSTOMER_TYPE=2;
+    CUSTOMER_FLAG1=3;
+    CUSTOMER_FLAG2=4;
+    CUSTOMER_FLAG3=5;
+    CUSTOMER_FLAG4=6;
+    CUSTOMER_FLAG5=7;
+    PROPERTY_VACATED=8;//
+    PROPERTY_FLAG1=9;//
+    PROPERTY_FLAG2=10;//
+    PROPERTY_FLAG3=11;//
+    PROPERTY_FLAG4=12;//
+    PROPERTY_FLAG5=13;//
+    CONNECTION_DIAMETER=14;//
+    CONNECTION_STATUS=15;//
+    CONNECTION_ISBULK_METER=16;//
+    METER_DIAMETER=17;//
+    SERVICE=18;
+}
+
+enum ChargeRegularCalcBase {
+    MAIN_CONNECTION=1;
+    ALL_SUB_CONNECTION=2;
+    HIEGH_PERCENTAGE_SUB_CONNECTION=3;
+    LOW_PERCENTAGE_CONNECTION=4;
+    FIRST_SUB_CONNECTION=5;
+    LAST_CONNECTION=6;
 }
 
 //the entity meter used as entity type for calculation or enabling 
@@ -37,7 +79,9 @@ message Connection {
     optional bool IsBulkMeter=3;
     optional int64 ConnDiameter=4;
     optional Meter Meter=5;
-    repeated SubConnection SubConnections=99;
+    optional double EstimCons=6;
+    optional CONNECTION_STATUS_TYPE ConnectionStatus=7;
+    repeated SubConnection SubConnections=8;
 }
 
 
@@ -63,19 +107,20 @@ message Property {
     optional string InfoFlag4 =6;
     optional string InfoFlag5 =7;
     optional int64 NoRooms=8;   
-    repeated Service Services=99;
+    repeated Service Services=9;
+    optional bool IsVacated=10;
 }
 
 message Customer {
     required string Custkey =1;
-    optional int64 CustType=2;
+    required int64 CustType=2;
     optional bool IsCompany =3;
     optional string InfoFlag1 =4;
     optional string InfoFlag2 =5;
     optional string InfoFlag3 =6;
     optional string InfoFlag4 =7;
     optional string InfoFlag5 =8;
-    repeated Property Properties=99;
+    optional Property Property=9;
 }
 
 //is overall all actual or estim consumption for each service
@@ -157,18 +202,86 @@ message TariffBand {
 message Tariff {
     required string TariffId =1;
     optional double TaxPercentage=2;
-    repeated ExtraTariffFess ExtraFees=3;
-    repeated TariffBand Bands=4;
+    optional double DiscountPercentage=3;
+    repeated ExtraTariffFess ExtraFees=4;
+    repeated TariffBand Bands=5;
 }
 message TariffRequest {
     repeated Tariff Tariffs=1;
 }
 message Empty {
 }
-service BillingService {
-  rpc Charge (BillRequest) returns (BillResponce) {}
-  rpc SetCtg (CtgRequest) returns (Empty) {}
-  rpc SetTariff (TariffRequest) returns (Empty) {}
+
+
+
+//////////////////// Charges Regular ////////
+
+message EntityChargeMappedValue{
+    optional double From =1;
+    optional double To=2;
+    optional string LuKey=3;
+    optional double Value=4;    
 }
 
-////////////////////
+message EntityEnableMappedValue{
+    required string LuKey=3;
+    optional bool Value=4;    
+}
+
+message RegularChargeEntity {
+    required string Code=1;
+    required ENTITY_TYPE EntityType=2;    
+    //required string EntityField=3;    
+    optional bool PerUnit=4;
+    optional bool Fixed=5;
+    repeated EntityChargeMappedValue MappedValues=6;
+}
+
+message RegularEnableEntity {
+    required string Code=1;
+    required ENTITY_TYPE EntityType=2;    
+    //required string EntityField=3;    
+    repeated EntityEnableMappedValue MappedValues=6;
+}
+
+message CustTypeExtraSetting {
+    required int64 CustType=1;
+    optional ChargeRegularCalcBase CalcBase=2;
+}
+
+message RegularCharge{
+    required google.protobuf.Timestamp EffectiveDate=1;
+    required int64 TransCode=2;
+    required int64 TransSCode=3;
+    required string TransTitle=4;
+    optional string TransSTitle=5;
+    required bool IsChargable=6;
+    required RegularChargePeriod ChargeCalcPeriod=7;
+    optional int64 ChargeInterval=9;//monthly interval
+    optional int64 ChargeMonthlyDay=10;//day of the mounth
+    optional int64 ChargeType=11;
+    optional double FixedCharge=12;
+    optional double FixedChargeDiscount=13;
+    optional double MinCharge=14;
+    optional double VatPercentage=15;
+    optional RegularChargeEntity RelationChargeEntity=16;
+    optional RegularEnableEntity RelationEnableEntity=17;
+    optional bool Bypass=18;
+    repeated CustTypeExtraSetting ExtraSettingPerCustType=19;
+}
+
+message RegularChargeRequest {
+    repeated RegularCharge RegularCharge=1;
+}
+
+message SetupRequest {
+    repeated Tariff Tariffs=1;
+    repeated Ctg Ctgs=2;
+    repeated RegularCharge RegularCharge=3;
+}
+
+///////Service///////////////
+service BillingService {
+  rpc Charge (BillRequest) returns (BillResponce) {}
+  rpc Setup(SetupRequest) returns (Empty) {}
+}

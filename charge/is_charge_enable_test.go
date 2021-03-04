@@ -103,7 +103,7 @@ func TestPropertyServiceChargeEnable(t *testing.T) {
 
 
 func TestMultiCTypeChargeEnable(t *testing.T) {
-	entityType:=ENTITY_TYPE_CTG_TYPE
+	entityType:=ENTITY_TYPE_CTYPE
 	MappedValues:=make([]*EntityEnableMappedValue,0)
 	MappedValues=append(MappedValues,&EntityEnableMappedValue{
 		LuKey:ToStringPointer("00/01"),
@@ -141,7 +141,7 @@ func TestMultiCTypeChargeEnable(t *testing.T) {
 
 
 func TestCTypeChargeEnable(t *testing.T) {
-	entityType:=ENTITY_TYPE_CTG_TYPE
+	entityType:=ENTITY_TYPE_CTYPE
 	MappedValues:=make([]*EntityEnableMappedValue,0)
 	MappedValues=append(MappedValues,&EntityEnableMappedValue{
 		LuKey:ToStringPointer("00/01"),

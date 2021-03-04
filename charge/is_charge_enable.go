@@ -137,6 +137,15 @@ func IsChargeEnable(fee *RegularCharge,c *Customer) (bool,error){
 			}
 			return false,nil
 		}
+		if typ == ENTITY_TYPE_TOWINSHIP {
+			for _,m:=range mappedValues{
+				if tools.StringComparePointer(m.LuKey,c.Property.TOWINSHIP){
+					return m.GetValue(),nil
+					break;
+				}
+			}
+			return false,nil
+		}
 		services := c.Property.Services
 		if services != nil && len(services) > 0 {
 			if typ == ENTITY_TYPE_SERVICE {
@@ -190,7 +199,7 @@ func IsChargeEnable(fee *RegularCharge,c *Customer) (bool,error){
 						}
 						return false,nil
 					}
-					if typ == ENTITY_TYPE_CTG_TYPE {
+					if typ == ENTITY_TYPE_CTYPE {
 						ctypes := make([]*string, 0)
 						if srv.Connection.SubConnections != nil && len(srv.Connection.SubConnections) > 0 {
 							for idx := range srv.Connection.SubConnections {
@@ -200,6 +209,24 @@ func IsChargeEnable(fee *RegularCharge,c *Customer) (bool,error){
 							ctypes = append(ctypes, srv.Connection.CType)
 						}
 						for _,ctype:=range ctypes{
+							for _,m:=range mappedValues{
+								if tools.StringComparePointer(m.LuKey,ctype){
+									return m.GetValue(),nil
+									break;
+								}
+							}
+						}
+					}
+					if typ == ENTITY_TYPE_CTYPE_GROUP {
+						ctypes_groups := make([]*string, 0)
+						if srv.Connection.SubConnections != nil && len(srv.Connection.SubConnections) > 0 {
+							for idx := range srv.Connection.SubConnections {
+								ctypes_groups = append(ctypes_groups, srv.Connection.SubConnections[idx].CTYPE_GROUP)
+							}
+						} else {
+							ctypes_groups = append(ctypes_groups, srv.Connection.CTYPE_GROUP)
+						}
+						for _,ctype:=range ctypes_groups{
 							for _,m:=range mappedValues{
 								if tools.StringComparePointer(m.LuKey,ctype){
 									return m.GetValue(),nil

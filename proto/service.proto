@@ -33,33 +33,38 @@ enum RegularChargePeriod {
 }
 
 enum ENTITY_TYPE {
-    CTG_TYPE=1;
-    CUSTOMER_TYPE=2;
-    CUSTOMER_FLAG1=3;
-    CUSTOMER_FLAG2=4;
-    CUSTOMER_FLAG3=5;
-    CUSTOMER_FLAG4=6;
-    CUSTOMER_FLAG5=7;
-    PROPERTY_VACATED=8;//
-    PROPERTY_FLAG1=9;//
-    PROPERTY_FLAG2=10;//
-    PROPERTY_FLAG3=11;//
-    PROPERTY_FLAG4=12;//
-    PROPERTY_FLAG5=13;//
-    CONNECTION_DIAMETER=14;//
-    CONNECTION_STATUS=15;//
-    CONNECTION_ISBULK_METER=16;//
-    METER_DIAMETER=17;//
-    SERVICE=18;
+    CTYPE=1;
+    CTYPE_GROUP=2;
+    CUSTOMER_TYPE=3;
+    CUSTOMER_FLAG1=4;
+    CUSTOMER_FLAG2=5;
+    CUSTOMER_FLAG3=6;
+    CUSTOMER_FLAG4=7;
+    CUSTOMER_FLAG5=8;
+    PROPERTY_VACATED=9;//
+    PROPERTY_FLAG1=10;//
+    PROPERTY_FLAG2=11;//
+    PROPERTY_FLAG3=12;//
+    PROPERTY_FLAG4=13;//
+    PROPERTY_FLAG5=14;//
+    CONNECTION_DIAMETER=15;//
+    CONNECTION_STATUS=16;//
+    CONNECTION_ISBULK_METER=18;//
+    METER_DIAMETER=19;//
+    SERVICE=20;
+    TOWINSHIP=21;
 }
 
-enum ChargeRegularCalcBase {
-    MAIN_CONNECTION=1;
-    ALL_SUB_CONNECTION=2;
-    HIEGH_PERCENTAGE_SUB_CONNECTION=3;
-    LOW_PERCENTAGE_CONNECTION=4;
-    FIRST_SUB_CONNECTION=5;
-    LAST_CONNECTION=6;
+enum ChargeRegularCTypeCalcBase {
+    MAIN_CTYPE=1;
+    SUM_CTYPES=2;
+    HIGHTEST_AMOUNT=3;
+    LOWEST_AMOUNT=4;
+    HIGHT_PERCENTAGE=5;
+    LOW_PERCENTAGE=6;
+    SUM_DISIICT_CTYPE_GROUP=7;
+    HIGHTEST_CTYPE_GROUP_AMOUNT=8;
+    LOWEST_CTYPE_GROUP_AMOUNT=9;
 }
 
 //the entity meter used as entity type for calculation or enabling 
@@ -75,21 +80,23 @@ message Meter {
 
 message Connection {
     required string CType =1;
-    required int64 NoUnits=2;   
-    optional bool IsBulkMeter=3;
-    optional int64 ConnDiameter=4;
-    optional Meter Meter=5;
-    optional double EstimCons=6;
-    optional CONNECTION_STATUS_TYPE ConnectionStatus=7;
-    repeated SubConnection SubConnections=8;
+    required string CTYPE_GROUP=2;
+    required int64 NoUnits=3;   
+    optional bool IsBulkMeter=4;
+    optional int64 ConnDiameter=5;
+    optional Meter Meter=6;
+    optional double EstimCons=7;
+    optional CONNECTION_STATUS_TYPE ConnectionStatus=8;
+    repeated SubConnection SubConnections=9;
 }
 
 
 message SubConnection {
     required string CType =1;
-    optional double EstimateConsumptionPerUnit=2;
-    optional double ConsumptionPercentage=3;
-    optional int64 NoUnits=4;
+    required string CTYPE_GROUP=2;
+    optional double EstimateConsumptionPerUnit=3;
+    optional double ConsumptionPercentage=4;
+    optional int64 NoUnits=5;
 }
 
 
@@ -109,6 +116,7 @@ message Property {
     optional int64 NoRooms=8;   
     repeated Service Services=9;
     optional bool IsVacated=10;
+    optional string TOWINSHIP=11;
 }
 
 message Customer {
@@ -214,7 +222,7 @@ message Empty {
 
 
 
-//////////////////// Charges Regular ////////
+////////////////////Regular Charges  ////////
 
 message EntityChargeMappedValue{
     optional double From =1;
@@ -244,11 +252,6 @@ message RegularEnableEntity {
     repeated EntityEnableMappedValue MappedValues=6;
 }
 
-message CustTypeExtraSetting {
-    required int64 CustType=1;
-    optional ChargeRegularCalcBase CalcBase=2;
-}
-
 message RegularCharge{
     required google.protobuf.Timestamp EffectiveDate=1;
     required int64 TransCode=2;
@@ -267,7 +270,7 @@ message RegularCharge{
     optional RegularChargeEntity RelationChargeEntity=16;
     optional RegularEnableEntity RelationEnableEntity=17;
     optional bool Bypass=18;
-    repeated CustTypeExtraSetting ExtraSettingPerCustType=19;
+    optional ChargeRegularCTypeCalcBase CTypeCalcBase=19;
 }
 
 message RegularChargeRequest {

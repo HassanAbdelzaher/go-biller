@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/charge/customer_values.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/charge/customer_values_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/charge_regular_calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/charge_regular_calc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/entity_type_map.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/charge/is_charge_enable.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/is_charge_enable.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/is_charge_enable_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/service.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.pb.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/service.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.proto" afterDir="false" />
     </list>

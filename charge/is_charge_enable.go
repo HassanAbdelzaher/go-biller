@@ -4,14 +4,61 @@ import (
 	. "MaisrForAdvancedSystems/go-biller/proto"
 	"MaisrForAdvancedSystems/go-biller/tools"
 	"errors"
-	"log"
+	"time"
 )
 
-func IsChargeEnable(fee *RegularCharge,c *Customer) (bool,error){
+
+func IsChargeEnable(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
+	if fee==nil{
+		return false,nil
+	}
+	if fee.IsChargable==nil || !*fee.IsChargable{
+		return false,nil
+	}
+	if fee.ChargeCalcPeriod!=nil || *fee.ChargeCalcPeriod==RegularChargePeriod_MONTHLY{
+		if fee.EffectiveDate==nil{
+			return false,errors.New("Missing Effect Date for charge regular")
+		}
+		var effDate time.Time=fee.EffectiveDate.AsTime()
+		if effDate.After(bilngDate){
+			return false, nil
+		}
+	}else {
+		if fee.EffectiveDate==nil{
+			return false,errors.New("Missing Effect Date for charge regular")
+		}
+		var effDate time.Time=fee.EffectiveDate.AsTime()
+		if effDate.After(bilngDate){
+			return false, nil
+		}
+	}
+
 	if fee.Bypass!=nil{
 		if *fee.Bypass{
 			return true,nil
 		}
+	}
+	if fee.ServiceType==nil{
+		return false,nil
+	}
+	if c.Property==nil{
+		return false,nil
+	}
+	if c.Property.Services==nil || len(c.Property.Services)==0{
+		return false,nil
+	}
+	found:=false
+	for _,sv:=range c.Property.Services{
+		if sv.ServiceType!=nil && *sv.ServiceType==*fee.ServiceType{
+			found=true
+			break
+		}
+	}
+	if !found{
+		return false,nil
+	}
+	if fee.ChargeType==nil && *fee.ChargeType==ChargeType_FIXED{
+		return true,nil
 	}
 	if fee.RelationEnableEntity==nil{
 		return false,errors.New("missing enabled entity for charge regular")
@@ -22,231 +69,15 @@ func IsChargeEnable(fee *RegularCharge,c *Customer) (bool,error){
 	}
 	typ:=*ree.EntityType
 	var mappedValues=ree.MappedValues
-	if mappedValues==nil || len(mappedValues)==0{
+	var customerValues=CustomerValues(typ,c)
+	if mappedValues==nil || len(mappedValues)==0 || customerValues==nil || len(customerValues)==0{
 		return false,nil
 	}
-	if typ == ENTITY_TYPE_CUSTOMER_TYPE {
-		val:=tools.Int64ToString(c.CustType)
+	for _,cstValue:=range customerValues{
 		for _,m:=range mappedValues{
-			log.Println(*m.LuKey,*val)
-			if tools.StringComparePointer(m.LuKey,val){
+			if tools.StringComparePointer(m.LuKey,cstValue){
 				return m.GetValue(),nil
 				break;
-			}
-		}
-		return false,nil
-	}
-	if typ == ENTITY_TYPE_CUSTOMER_FLAG1 {
-		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,c.InfoFlag1){
-				return m.GetValue(),nil
-				break;
-			}
-		}
-		return false,nil
-	}
-	if typ == ENTITY_TYPE_CUSTOMER_FLAG2 {
-		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,c.InfoFlag2){
-				return m.GetValue(),nil
-				break;
-			}
-		}
-		return false,nil
-	}
-	if typ == ENTITY_TYPE_CUSTOMER_FLAG3 {
-		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,c.InfoFlag3){
-				return m.GetValue(),nil
-				break;
-			}
-		}
-		return false,nil
-	}
-	if typ == ENTITY_TYPE_CUSTOMER_FLAG4 {
-		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,c.InfoFlag4){
-				return m.GetValue(),nil
-				break;
-			}
-		}
-		return false,nil
-	}
-	if typ == ENTITY_TYPE_CUSTOMER_FLAG5 {
-		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,c.InfoFlag5){
-				return m.GetValue(),nil
-				break;
-			}
-		}
-		return false,nil
-	}
-	if c.Property != nil {
-		if typ == ENTITY_TYPE_PROPERTY_VACATED {
-			val:=tools.BoolToString(c.Property.IsVacated)
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,val){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_PROPERTY_FLAG1 {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.InfoFlag1){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_PROPERTY_FLAG2 {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.InfoFlag2){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_PROPERTY_FLAG3 {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.InfoFlag3){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_PROPERTY_FLAG4 {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.InfoFlag4){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_PROPERTY_FLAG5 {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.InfoFlag5){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		if typ == ENTITY_TYPE_TOWINSHIP {
-			for _,m:=range mappedValues{
-				if tools.StringComparePointer(m.LuKey,c.Property.TOWINSHIP){
-					return m.GetValue(),nil
-					break;
-				}
-			}
-			return false,nil
-		}
-		services := c.Property.Services
-		if services != nil && len(services) > 0 {
-			if typ == ENTITY_TYPE_SERVICE {
-				for _, srv := range services {
-					if srv.ServiceType != nil {
-						srvType := int64(*srv.ServiceType)
-						val := tools.Int64ToString(&srvType)
-						for _, m := range mappedValues {
-							if tools.StringComparePointer(m.LuKey, val) {
-								return m.GetValue(), nil
-								break;
-							}
-						}
-					}
-				}
-				return false, nil
-			}
-			for _, srv := range services {
-				if srv.Connection != nil {
-					conn:=srv.Connection
-					if typ == ENTITY_TYPE_CONNECTION_DIAMETER {
-						val:=tools.Int64ToString(conn.ConnDiameter)
-						for _,m:=range mappedValues{
-							if tools.StringComparePointer(m.LuKey,val){
-								return m.GetValue(),nil
-								break;
-							}
-						}
-						return false,nil
-					}
-					if typ == ENTITY_TYPE_CONNECTION_STATUS {
-						if conn.ConnectionStatus!=nil{
-							var cSttaus int32=int32(*conn.ConnectionStatus)
-							val:=tools.Int32ToString(&cSttaus)
-							for _,m:=range mappedValues{
-								if tools.StringComparePointer(m.LuKey,val){
-									return m.GetValue(),nil
-									break;
-								}
-							}
-						}
-						return false,nil
-					}
-					if typ == ENTITY_TYPE_CONNECTION_ISBULK_METER {
-						val:=tools.BoolToString(conn.IsBulkMeter)
-						for _,m:=range mappedValues{
-							if tools.StringComparePointer(m.LuKey,val){
-								return m.GetValue(),nil
-								break;
-							}
-						}
-						return false,nil
-					}
-					if typ == ENTITY_TYPE_CTYPE {
-						ctypes := make([]*string, 0)
-						if srv.Connection.SubConnections != nil && len(srv.Connection.SubConnections) > 0 {
-							for idx := range srv.Connection.SubConnections {
-								ctypes = append(ctypes, srv.Connection.SubConnections[idx].CType)
-							}
-						} else {
-							ctypes = append(ctypes, srv.Connection.CType)
-						}
-						for _,ctype:=range ctypes{
-							for _,m:=range mappedValues{
-								if tools.StringComparePointer(m.LuKey,ctype){
-									return m.GetValue(),nil
-									break;
-								}
-							}
-						}
-					}
-					if typ == ENTITY_TYPE_CTYPE_GROUP {
-						ctypes_groups := make([]*string, 0)
-						if srv.Connection.SubConnections != nil && len(srv.Connection.SubConnections) > 0 {
-							for idx := range srv.Connection.SubConnections {
-								ctypes_groups = append(ctypes_groups, srv.Connection.SubConnections[idx].CTYPE_GROUP)
-							}
-						} else {
-							ctypes_groups = append(ctypes_groups, srv.Connection.CTYPE_GROUP)
-						}
-						for _,ctype:=range ctypes_groups{
-							for _,m:=range mappedValues{
-								if tools.StringComparePointer(m.LuKey,ctype){
-									return m.GetValue(),nil
-									break;
-								}
-							}
-						}
-					}
-					if srv.Connection.Meter != nil {
-						if typ == ENTITY_TYPE_METER_DIAMETER {
-							val:=tools.Int64ToString(conn.Meter.Diameter)
-							for _,m:=range mappedValues{
-								if tools.StringComparePointer(m.LuKey,val){
-									return m.GetValue(),nil
-									break;
-								}
-							}
-						}
-					}
-				}
 			}
 		}
 	}

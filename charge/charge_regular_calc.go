@@ -2,6 +2,7 @@ package charge
 
 import (. "MaisrForAdvancedSystems/go-biller/proto"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -49,6 +50,28 @@ func CalcRegularCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,las
 			return nil,nil
 		}
 	}
+	if fee.ChargeType!=nil || *fee.ChargeType==ChargeType_FIXED{
+		if fee.FixedCharge==nil{
+			return nil,errors.New(fmt.Sprintf("missing fixed value for charge regular %s",fee.TransCode))
+		}
+		chrg:=*fee.FixedCharge
+		var noUnits int64=0
+		if cust.Property!=nil && cust.Property.Services!=nil {
+			for _,sv:=range cust.Property.Services{
+				if sv!=nil && sv.Connection!=nil && sv.Connection.NoUnits!=nil{
+					noUnits=noUnits+*sv.Connection.NoUnits
+				}
+			}
+		}
+		if fee.PerUnit!=nil && *fee.PerUnit{
+			return chrg
+		}
+	}
+	/////
+	if fee.RelationChargeEntity.EntityType==nil{
+
+	}
+	custValues:=CustomerValues(*fee.RelationChargeEntity.EntityType,cust)
 	///validation of entity
 	return &amount,nil
 }

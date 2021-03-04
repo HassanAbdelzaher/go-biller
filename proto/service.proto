@@ -67,6 +67,11 @@ enum ChargeRegularCTypeCalcBase {
     LOWEST_CTYPE_GROUP_AMOUNT=9;
 }
 
+enum ChargeType{
+    FIXED=0;
+    RELATION=1;
+}
+
 //the entity meter used as entity type for calculation or enabling 
 //while the consump claculated 
 message Meter {
@@ -240,7 +245,6 @@ message RegularChargeEntity {
     required string Code=1;
     required ENTITY_TYPE EntityType=2;    
     //required string EntityField=3;    
-    optional bool PerUnit=4;
     optional bool Fixed=5;
     repeated EntityChargeMappedValue MappedValues=6;
 }
@@ -259,10 +263,11 @@ message RegularCharge{
     required string TransTitle=4;
     optional string TransSTitle=5;
     required bool IsChargable=6;
-    required RegularChargePeriod ChargeCalcPeriod=7;
+    required SERVICE_TYPE ServiceType = 7;
+    required RegularChargePeriod ChargeCalcPeriod=8;
     optional int64 ChargeInterval=9;//monthly interval
     optional int64 ChargeMonthlyDay=10;//day of the mounth
-    optional int64 ChargeType=11;
+    optional ChargeType ChargeType=11;
     optional double FixedCharge=12;
     optional double FixedChargeDiscount=13;
     optional double MinCharge=14;
@@ -271,6 +276,8 @@ message RegularCharge{
     optional RegularEnableEntity RelationEnableEntity=17;
     optional bool Bypass=18;
     optional ChargeRegularCTypeCalcBase CTypeCalcBase=19;
+    optional bool PerUnit=20;
+
 }
 
 message RegularChargeRequest {

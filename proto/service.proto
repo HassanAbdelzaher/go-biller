@@ -32,6 +32,7 @@ enum RegularChargePeriod {
     MONTHLY=2;
 }
 
+
 enum ENTITY_TYPE {
     CTYPE=1;
     CTYPE_GROUP=2;

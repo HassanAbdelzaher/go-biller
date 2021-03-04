@@ -16,12 +16,15 @@ func IsChargeEnable(fee *RegularCharge,c *Customer,bilngDate time.Time,lastCharg
 		return false,nil
 	}
 	if fee.ChargeCalcPeriod!=nil || *fee.ChargeCalcPeriod==RegularChargePeriod_MONTHLY{
-		if fee.EffectiveDate==nil{
-			return false,errors.New("Missing Effect Date for charge regular")
-		}
-		var effDate time.Time=fee.EffectiveDate.AsTime()
-		if effDate.After(bilngDate){
-			return false, nil
+		if lastChargeDate!=nil{
+			var period int64=1//on month
+			if fee.ChargeInterval!=nil && *fee.ChargeInterval>1{
+				period=period
+			}
+			nextChargeDate:=lastChargeDate.AddDate(0,int(period),0)
+			if nextChargeDate.After(time.Now()){
+				return false,nil
+			}
 		}
 	}else {
 		if fee.EffectiveDate==nil{

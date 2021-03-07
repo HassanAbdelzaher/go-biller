@@ -1,11 +1,12 @@
 package service
 
 import (
+	"MaisrForAdvancedSystems/go-biller/consumptions"
 	. "MaisrForAdvancedSystems/go-biller/proto"
-	. "MaisrForAdvancedSystems/go-biller/charge/tariff_calc"
+	tr "MaisrForAdvancedSystems/go-biller/charge/tariff_calc"
+	"MaisrForAdvancedSystems/go-biller/tools"
 	"context"
 	errors "errors"
-	"fmt"
 	"log"
 	"strings"
 )
@@ -78,7 +79,36 @@ func (s *BillingService) Charge(c context.Context, r *BillRequest) (*BillResponc
 			}
 		}
 	}
-	return nil, nil
+	var totalAmout float64=0
+	resp:=BillResponce{}
+	resp.Charges=make([]*BillResponceItem,0)
+	for k,v:=range rdgs{
+		amt,err:=s.CalcForService(r.Setting,k,v)
+		if err!=nil{
+			return nil,err
+		}
+		if amt!=nil &&*amt>0{
+			resp.Charges=append(resp.Charges,&BillResponceItem{
+				ServiceType:          k.ServiceType,
+				Charges:              []*BillResponceItemCtg{
+					&BillResponceItemCtg{
+						CType:tools.ToStringPointer("00/01"),
+					},
+				},
+				ExtraCharges:         nil,
+			})
+		}
+	}
+	return &BillResponce{
+		Charges:              []*BillResponceItem{
+			&BillResponceItem{
+				ServiceType:          nil,
+				Charges:              nil,
+				ExtraCharges:         nil,
+			},
+		},
+
+	}, nil
 }
 
 /////////////////////vlidations/////////////////
@@ -222,35 +252,40 @@ func (s *BillingService) CalcForService(setting *ChargeSetting,service *Service,
 	if conn==nil{
 		return nil,nil
 	}
-	mainCtype:=conn.CType;
-	if conn.SubConnections==nil || len (conn.SubConnections)==0{
-		return s.CalcForConnection(setting,service.ServiceType,mainCtype,conn.NoUnits,conn.EstimCons,reading);
+	cons,err:=consumptions.GetConnectionsConsumption(s.Ctgs,service.Connection,setting.BilingDate.AsTime(),reading.Reading,true)
+	if err!=nil{
+		return nil,err
 	}
-	ctg, ok := s.Ctgs[ctype]
-	if !ok || ctg.Tariffs == nil {
-		return nil, errors.New("missing ctype in setup" + ctype)
-	}
-	var tariff *Tariff
-	found := false
-	for idx := range ctg.Tariffs {
-		if *ctg.Tariffs[idx].ServiceType == *serv {
-			found = true
-			tarfid := ctg.Tariffs[idx].TarifId
-			if !s.IsTariffFound(tarfid) {
-				return nil, errors.New("missing tarrif" + ctype)
+	var amt float64=0
+	for _,c:=range cons{
+		ctg,ok:=s.Ctgs[c.Ctype]
+		if !ok{
+			return nil,errors.New("missing ctype :"+c.Ctype)
+		}
+		tarifId:=""
+		if ctg.Tariffs!=nil{
+			for _,srvTar:=range ctg.Tariffs{
+				if *srvTar.ServiceType==*service.ServiceType{
+					if srvTar.TarifId==nil{
+						return nil,errors.New("missing tariff :"+c.Ctype)
+					}
+					tarifId=*srvTar.TarifId
+				}
 			}
-			tariff = s.Tariffs[*tarfid]
-			break
+			tariff,ok:=s.Tariffs[tarifId]
+			if !ok{
+				return nil,errors.New("missing tariff :"+c.Ctype)
+			}
+			crgAmt,err:=tr.Calc(c.NoUnits,c.Consump,tariff)
+			if err!=nil{
+				return nil,err
+			}
+			if crgAmt!=nil && *crgAmt>0{
+				amt=amt+*crgAmt
+			}
 		}
 	}
-	if !found || tariff == nil {
-		return nil, errors.New("missing tarrif" + ctype)
-	}
-	if no_units < 1 {
-		no_units = 1
-	}
-
-	return Calc(no_units, consump, tariff)
+	return &amt,nil
 }
 
 

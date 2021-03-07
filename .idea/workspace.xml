@@ -2,22 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/consumptions/consump_getter.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/consumptions/consump_getter_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/tariff_calc/calc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/calc_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/tariff_calc/calc_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/charge_regular_calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/calc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/customer_values.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/customer_values.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/customer_values_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/customer_values_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/check_chargability.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/check_chargability_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/sample.go" beforeDir="false" afterPath="$PROJECT_DIR$/samples/sample.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/service.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/service.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.proto" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/service/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/service/service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/tools/tools.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

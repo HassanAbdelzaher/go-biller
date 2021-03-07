@@ -141,28 +141,6 @@ message Customer {
 
 
 
-//the expected responce is the amount for each service
-message ExtraCharge{
-    optional string DESCRIPTION=1;
-    required string Code=2;
-    required double Amount=3;
-}
-
-message BillResponceItemCtg {
-    required double CType=1;
-    required double Amount=2;
-    optional double TaxAmount=3;
-}
-
-message BillResponceItem{
-    required SERVICE_TYPE ServiceType = 1;
-    repeated BillResponceItemCtg Charges=2;
-    repeated ExtraCharge ExtraCharges=99;
-}
-
-message BillResponce{
-    repeated BillResponceItem Charges=1;
-}
 
 ///////////////////////////
 //Tariff
@@ -310,6 +288,30 @@ message BillRequest{
     repeated ServiceReading ServicesReadings=2;
     required ChargeSetting Setting=3;
 }
+//
+//the expected responce is the amount for each service
+message ExtraCharge{
+    optional string DESCRIPTION=1;
+    required string Code=2;
+    required double Amount=3;
+}
+
+message BillResponceItemCtg {
+    required string CType=1;
+    required double Amount=2;
+    optional double TaxAmount=3;
+}
+
+message BillResponceItem{
+    required SERVICE_TYPE ServiceType = 1;
+    repeated BillResponceItemCtg Charges=2;
+    repeated ExtraCharge ExtraCharges=99;
+}
+
+message BillResponce{
+    repeated BillResponceItem Charges=1;
+}
+
 service BillingService {
   rpc Charge (BillRequest) returns (BillResponce) {}
   rpc Setup(SetupRequest) returns (Empty) {}

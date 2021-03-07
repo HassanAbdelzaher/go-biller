@@ -101,7 +101,7 @@ func GetCustTypeChargeRegularSample(entityType ENTITY_TYPE,maped []*EntityEnable
 	rg.RelationEnableEntity=&en
 	return &rg
 }
-func GetNoramlCustomer(typ int64,isVactated bool,ctype string,estimCons float64,noUnits int64,meteOpStatus *MeterOperationStatus) *Customer{
+func GetNoramlCustomer(typ int64,isVactated bool,ctype string,estimCons float64,noUnits int64,meteOpStatus MeterOperationStatus) *Customer{
 	cust:=Customer{}
 	cust.CustType=&typ
 	cust.Custkey=ToStringPointer("1234")
@@ -130,10 +130,10 @@ func GetNoramlCustomer(typ int64,isVactated bool,ctype string,estimCons float64,
 	meter.Diameter=ToIntPointer(10)
 	meter.MeterRef=ToStringPointer("1")
 	meter.MeterType=ToStringPointer("2")
-	meter.OpStatus=meteOpStatus
+	meter.OpStatus=&meteOpStatus
 	return &cust
 }
-func GetMultiConnectionCustomer(typ int64,isVactated bool,mainCtype string,estimCons float64,noUnits int64,meteOpStatus *MeterOperationStatus,connections []*SubConnection) *Customer{
+func GetMultiConnectionCustomer(typ int64,isVactated bool,mainCtype string,estimCons float64,noUnits int64,meteOpStatus MeterOperationStatus,connections []*SubConnection) *Customer{
 	if connections==nil || len(connections)==0{
 		return GetNoramlCustomer(typ,isVactated,mainCtype,estimCons,noUnits,meteOpStatus)
 	}

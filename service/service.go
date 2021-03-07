@@ -53,13 +53,13 @@ func (s *BillingService) Charge(c context.Context, r *BillRequest) (*BillResponc
 	if r == nil || r.Customer == nil {
 		return nil, errors.New("invalied request")
 	}
-	isCustValied,err:=s.ValidateCustomer(c,r.Customer)
+	/*isCustValied,err:=s.ValidateCustomer(c,r.Customer)
 	if err!=nil{
 		return nil,err
 	}
 	if isCustValied==nil || !*isCustValied{
 		return nil, errors.New("customer data is not valied ")
-	}
+	}*/
 	if r.Customer.Property == nil {
 		return nil, nil
 	}
@@ -79,36 +79,34 @@ func (s *BillingService) Charge(c context.Context, r *BillRequest) (*BillResponc
 			}
 		}
 	}
-	var totalAmout float64=0
+	//log.Println(rdgs)
 	resp:=BillResponce{}
 	resp.Charges=make([]*BillResponceItem,0)
 	for k,v:=range rdgs{
+		log.Println(k.ServiceType.String())
 		amt,err:=s.CalcForService(r.Setting,k,v)
 		if err!=nil{
+			log.Println(err)
 			return nil,err
 		}
+		chrges:=[]*BillResponceItemCtg{
+			&BillResponceItemCtg{
+				CType:tools.ToStringPointer("00/01"),
+				Amount:amt,
+			},
+		}
+		log.Println(chrges)
 		if amt!=nil &&*amt>0{
 			resp.Charges=append(resp.Charges,&BillResponceItem{
 				ServiceType:          k.ServiceType,
-				Charges:              []*BillResponceItemCtg{
-					&BillResponceItemCtg{
-						CType:tools.ToStringPointer("00/01"),
-					},
-				},
+				Charges:  chrges            ,
 				ExtraCharges:         nil,
 			})
+		}else {
+			log.Println("amount is nil or zero")
 		}
 	}
-	return &BillResponce{
-		Charges:              []*BillResponceItem{
-			&BillResponceItem{
-				ServiceType:          nil,
-				Charges:              nil,
-				ExtraCharges:         nil,
-			},
-		},
-
-	}, nil
+	return &resp, nil
 }
 
 /////////////////////vlidations/////////////////

@@ -14,7 +14,7 @@ import (
 
 func TestConnectionActualReading(t *testing.T){
 	var meterWorking=billing.MeterOperationStatus_WORKING
-	cust:=samples.GetNoramlCustomer(0,false,"00/01",12,2,&meterWorking)
+	cust:=samples.GetNoramlCustomer(0,false,"00/01",12,2,meterWorking)
 	conn:=cust.Property.Services[0].Connection
 	crDate:=timestamppb.New(time.Now())
 	prDate:=timestamppb.New(time.Now().AddDate(0,-1,0))
@@ -54,7 +54,7 @@ func TestConnectionActualReading(t *testing.T){
 }
 func TestConnectionWithoutActualReading(t *testing.T){
 	var meterWorking=billing.MeterOperationStatus_WORKING
-	cust:=samples.GetNoramlCustomer(0,false,"00/01",12,2,&meterWorking)
+	cust:=samples.GetNoramlCustomer(0,false,"00/01",12,2,meterWorking)
 	conn:=cust.Property.Services[0].Connection
 	data,err:=GetConnectionsConsumption(samples.GetCtgMap(),conn,time.Now(),nil,true)
 	if err!=nil{
@@ -92,7 +92,7 @@ func TestMultiConnectionWithActualReading(t *testing.T){
 			NoUnits:                    tools.ToIntPointer(20),
 		},
 	}
-	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,&meterWorking,connections)
+	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,meterWorking,connections)
 	conn:=cust.Property.Services[0].Connection
 	crDate:=timestamppb.New(time.Now())
 	prDate:=timestamppb.New(time.Now().AddDate(0,-1,0))
@@ -147,7 +147,7 @@ func TestMultiConnectionOpWithoutActualReading(t *testing.T){
 			NoUnits:                    tools.ToIntPointer(20),
 		},
 	}
-	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,&meterWorking,connections)
+	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,meterWorking,connections)
 	conn:=cust.Property.Services[0].Connection
 	data,err:=GetConnectionsConsumption(samples.GetCtgMap(),conn,time.Now(),nil,true)
 	if err!=nil{
@@ -184,7 +184,7 @@ func TestMultiConnectionNoOpWithoutActualReading(t *testing.T){
 			NoUnits:                    tools.ToIntPointer(20),
 		},
 	}
-	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,&meterWorking,connections)
+	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,meterWorking,connections)
 	conn:=cust.Property.Services[0].Connection
 	data,err:=GetConnectionsConsumption(samples.GetCtgMap(),conn,time.Now(),nil,true)
 	if err!=nil{
@@ -235,7 +235,7 @@ func TestMultiConnectionNoOpWithoutActualReading207(t *testing.T){
 			NoUnits:                    tools.ToIntPointer(20),
 		},
 	}
-	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,&meterWorking,connections)
+	cust:=samples.GetMultiConnectionCustomer(0,false,"00/01",12,2,meterWorking,connections)
 	conn:=cust.Property.Services[0].Connection
 	data,err:=GetConnectionsConsumption(samples.GetCtgMap(),conn,time.Now(),nil,true)
 	if err!=nil{

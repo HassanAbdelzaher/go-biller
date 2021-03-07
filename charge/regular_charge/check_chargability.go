@@ -1,21 +1,21 @@
-package charge
+package regular_charge
 
 import (
 	. "MaisrForAdvancedSystems/go-biller/proto"
 	"MaisrForAdvancedSystems/go-biller/tools"
 	"errors"
+	"log"
 	"time"
 )
 
-
-func IsChargeEnable(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
+func Check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
 	if fee==nil{
 		return false,nil
 	}
 	if fee.IsChargable==nil || !*fee.IsChargable{
 		return false,nil
 	}
-	if fee.ChargeCalcPeriod!=nil || *fee.ChargeCalcPeriod==RegularChargePeriod_MONTHLY{
+	if *fee.ChargeCalcPeriod==RegularChargePeriod_MONTHLY{
 		if lastChargeDate!=nil{
 			var period int64=1//on month
 			if fee.ChargeInterval!=nil && *fee.ChargeInterval>1{
@@ -35,19 +35,21 @@ func IsChargeEnable(fee *RegularCharge,c *Customer,bilngDate time.Time,lastCharg
 			return false, nil
 		}
 	}
-
 	if fee.Bypass!=nil{
 		if *fee.Bypass{
 			return true,nil
 		}
 	}
 	if fee.ServiceType==nil{
+		log.Println("missing service type")
 		return false,nil
 	}
 	if c.Property==nil{
+		log.Println("missing property")
 		return false,nil
 	}
 	if c.Property.Services==nil || len(c.Property.Services)==0{
+		log.Println("missing property services")
 		return false,nil
 	}
 	found:=false
@@ -58,11 +60,13 @@ func IsChargeEnable(fee *RegularCharge,c *Customer,bilngDate time.Time,lastCharg
 		}
 	}
 	if !found{
+		log.Println("no customer services match")
 		return false,nil
 	}
-	if fee.ChargeType==nil && *fee.ChargeType==ChargeType_FIXED{
+	if fee.ChargeType==nil || *fee.ChargeType==ChargeType_FIXED{
 		return true,nil
 	}
+	log.Printf("charge type %v",*fee.ChargeType)
 	if fee.RelationEnableEntity==nil{
 		return false,errors.New("missing enabled entity for charge regular")
 	}

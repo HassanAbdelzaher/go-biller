@@ -1,4 +1,4 @@
-package charge
+package tariff_calc
 
 import (
 	. "MaisrForAdvancedSystems/go-biller/proto"

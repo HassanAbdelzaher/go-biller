@@ -3,10 +3,26 @@ package tools
 import (
 	"strconv"
 	"strings"
+	"time"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 func ToFloatPointer(fl float64) *float64 {
 	return &fl
+}
+
+func FloatPtrToFloat(fl *float64) float64 {
+	if fl==nil{
+		return 0;
+	}
+	return *fl
+}
+
+func IntPtrPtrToInt(fl *int64) int64 {
+	if fl==nil{
+		return 0;
+	}
+	return *fl
 }
 
 func ToIntPointer(int642 int64) *int64 {
@@ -89,4 +105,91 @@ func BoolToString(b *bool) *string{
 		return &one
 	}
 	return &zero
+}
+
+func Sum(floats ...*float64) float64{
+	var sm float64=0
+	for id:=range floats{
+		if floats[id]!=nil{
+			sm=sm+*floats[id]
+		}
+	}
+	return sm
+}
+
+
+func Max(floats ...*float64) *float64{
+	var mx *float64=nil
+	for id:=range floats{
+		if floats[id]!=nil {
+			if mx==nil || *mx<*floats[id]{
+				mx=floats[id]
+			}
+		}
+	}
+	return mx
+}
+
+func Min(floats ...*float64) *float64{
+	var mx *float64=nil
+	for id:=range floats{
+		if floats[id]!=nil {
+			if mx==nil || *mx>*floats[id]{
+				mx=floats[id]
+			}
+		}
+	}
+	return mx
+}
+
+func Divide (m *float64,n *float64) *float64{
+	if m==nil || n==nil{
+		return nil
+	}
+	if *n==0{
+		return nil
+	}
+	dv:=(*m)/(*n)
+	return &dv
+}
+
+
+func Multiply (m *float64,n *float64) *float64{
+	if m==nil || n==nil{
+		return nil
+	}
+	rs:=(*m)*(*n)
+	return &rs
+}
+
+
+func DefaultF (m *float64,n float64) float64{
+	if m==nil {
+		return n
+	}
+	return *m
+}
+
+
+func DefaultI (m *int64,n int64) int64{
+	if m==nil {
+		return n
+	}
+	return *m
+}
+
+
+func DefaultTime (m *time.Time,n time.Time) time.Time{
+	if m==nil {
+		return n
+	}
+	return *m
+}
+
+
+func DefaultTimeStamp (m *timestamp.Timestamp,n time.Time) time.Time{
+	if m==nil {
+		return n
+	}
+	return m.AsTime()
 }

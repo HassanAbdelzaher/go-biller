@@ -80,6 +80,7 @@ message Meter {
     required string MeterRef = 2;    
     required int64 Diameter=3;
     optional int64 ConverterFactor=4;
+    required MeterOperationStatus OpStatus=5;
 }
 
 //used for sub connection calculations and entity calculations
@@ -137,27 +138,8 @@ message Customer {
     optional Property Property=9;
 }
 
-//is overall all actual or estim consumption for each service
-message Reading {
-    required double Consump=1;
-    required READING_TYPE ReadingType=2;
-    optional double PrReading = 3; 
-    optional double CrReading=4;
-    optional google.protobuf.Timestamp PR_DATE=5;
-    optional google.protobuf.Timestamp CR_DATE=6;
-}
 
-//each service may be has its meter (server meters,fire meters,electrcity meters)
-message ServiceReading {
-    required SERVICE_TYPE ServiceType = 1;
-    required Reading Reading=2;
-}
-// each billing request should have the customer entity and the reading for each service
-message BillRequest{
-    required Customer Customer=1;
-    repeated ServiceReading ServicesReadings=2;
-    required bool IgnoreTimeEffect=3;
-}
+
 
 //the expected responce is the amount for each service
 message ExtraCharge{
@@ -192,12 +174,12 @@ message ServiceTariff{
 
 message Ctg{
     required string CType =1;
-    repeated ServiceTariff Tariffs=2;
+    required string CTypeGroupid =2;
+    repeated ServiceTariff Tariffs=3;
+    optional double OP_ESTIM_CONS=4;
+    optional double NOOP_ESTIM_CONS=5;
 }
 
-message CtgRequest{
-    repeated Ctg Ctgs=2;
-}
 message ExtraTariffFess {
     required string Code =1;
     optional string Description =2;
@@ -220,9 +202,7 @@ message Tariff {
     repeated ExtraTariffFess ExtraFees=4;
     repeated TariffBand Bands=5;
 }
-message TariffRequest {
-    repeated Tariff Tariffs=1;
-}
+
 message Empty {
 }
 
@@ -285,13 +265,51 @@ message RegularChargeRequest {
     repeated RegularCharge RegularCharge=1;
 }
 
+
+
+///////Service///////////////
+
 message SetupRequest {
     repeated Tariff Tariffs=1;
     repeated Ctg Ctgs=2;
     repeated RegularCharge RegularCharge=3;
 }
 
-///////Service///////////////
+// each billing request should have the customer entity and the reading for each service
+message ChargeSetting{
+    required int64 CycleLength=2;
+    required google.protobuf.Timestamp BilingDate=3;
+    optional bool IgnoreTimeEffect=4;
+}
+enum MeterOperationStatus{
+    WORKING=0;
+    NOT_WORKING=1;
+}
+//is overall all actual or estim consumption for each service
+message SubConnectionReading {
+    required string Ctype =1;
+    required int64 NoUnits=2;
+    required double Percentage=3;
+    required double EstimConsumpPerUnit=4;    
+}
+message Reading {
+    required double Consump=1;
+    optional double PrReading = 2; 
+    optional double CrReading=3;
+    optional google.protobuf.Timestamp PrDate=4;
+    optional google.protobuf.Timestamp CrDate=5;
+}
+
+//each service may be has its meter (server meters,fire meters,electrcity meters)
+message ServiceReading {
+    required SERVICE_TYPE ServiceType = 1;
+    required Reading Reading=2;
+}
+message BillRequest{
+    required Customer Customer=1;
+    repeated ServiceReading ServicesReadings=2;
+    required ChargeSetting Setting=3;
+}
 service BillingService {
   rpc Charge (BillRequest) returns (BillResponce) {}
   rpc Setup(SetupRequest) returns (Empty) {}

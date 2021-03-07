@@ -1,4 +1,4 @@
-package charge
+package regular_charge
 
 import (
 	. "MaisrForAdvancedSystems/go-biller/proto"

@@ -2,15 +2,43 @@ package service
 
 import (
 	. "MaisrForAdvancedSystems/go-biller/proto"
-	. "MaisrForAdvancedSystems/go-biller/charge"
+	. "MaisrForAdvancedSystems/go-biller/charge/tariff_calc"
 	"context"
 	errors "errors"
+	"fmt"
+	"log"
 	"strings"
 )
-
+var empty Empty=Empty{}
 type BillingService struct {
 	Tariffs map[string]*Tariff
 	Ctgs    map[string]*Ctg
+	RegularCharges []*RegularCharge
+	IsTrace bool
+}
+func (s *BillingService) Trace(v ...interface{}){
+	if s.IsTrace{
+		log.Println(v...)
+	}
+}
+
+func (s *BillingService) TraceF(str string,v ...interface{}){
+	if s.IsTrace{
+		log.Printf(str,v...)
+	}
+}
+//setup for the engine with all settings
+func (s *BillingService) Setup(c context.Context, r *SetupRequest)(*Empty, error){
+	_,err:=s.SetCtg(c,r.Ctgs)
+	if err!=nil{
+		return nil,err
+	}
+	_,err=s.SetTariff(c,r.Tariffs)
+	if err!=nil{
+		return nil,err
+	}
+	s.RegularCharges=r.RegularCharge
+	return &empty,nil
 }
 
 // Charge calculate charge for all services
@@ -24,50 +52,31 @@ func (s *BillingService) Charge(c context.Context, r *BillRequest) (*BillResponc
 	if r == nil || r.Customer == nil {
 		return nil, errors.New("invalied request")
 	}
-	if r.ServicesReadings == nil {
-		return nil, errors.New("invalied request services")
+	isCustValied,err:=s.ValidateCustomer(c,r.Customer)
+	if err!=nil{
+		return nil,err
 	}
-	if len(r.ServicesReadings) == 0 {
-		return nil, errors.New("invalied request services")
+	if isCustValied==nil || !*isCustValied{
+		return nil, errors.New("customer data is not valied ")
 	}
-
-	return nil, nil
-}
-
-// SetCtg setup the ctg for the engin
-func (s *BillingService) SetCtg(c context.Context, r *CtgRequest) (*Empty, error) {
-	if r == nil || r.Ctgs == nil {
-		return nil, errors.New("invalied request")
+	if r.Customer.Property == nil {
+		return nil, nil
 	}
-	s.Ctgs = make(map[string]*Ctg)
-	for idx := range r.Ctgs {
-		if r.Ctgs[idx].CType == nil {
-			return nil, errors.New("invalied ctg data")
+	services:=r.Customer.Property.Services
+	if services==nil || len(services)==0{
+		return nil,nil
+	}
+	rdgs:=make(map[*Service]*ServiceReading)
+	if r.ServicesReadings != nil && len(r.ServicesReadings) >0 {
+		for idx:=range services{
+			srv:=services[idx]
+			for sx:=range r.ServicesReadings{
+				if *r.ServicesReadings[sx].ServiceType==*srv.ServiceType{
+					rdgs[srv]=r.ServicesReadings[sx]
+					break
+				}
+			}
 		}
-		if r.Ctgs[idx].Tariffs == nil || len(r.Ctgs[idx].Tariffs) == 0 {
-			return nil, errors.New("invalied ctg tarrif data")
-		}
-		id := strings.TrimSpace(*r.Ctgs[idx].CType)
-		s.Ctgs[id] = r.Ctgs[idx]
-	}
-	return nil, nil
-}
-
-// SetTariff setup the tariffes for the engin
-func (s *BillingService) SetTariff(c context.Context, r *TariffRequest) (*Empty, error) {
-	if r == nil || len(r.Tariffs) == 0 {
-		return nil, errors.New("invalied request")
-	}
-	s.Tariffs = make(map[string]*Tariff)
-	for idx := range r.Tariffs {
-		if r.Tariffs[idx].TariffId == nil {
-			return nil, errors.New("invalied tariff data")
-		}
-		if r.Tariffs[idx].Bands == nil || len(r.Tariffs[idx].Bands) == 0 {
-			return nil, errors.New("invalied  tarrif bands")
-		}
-		id := strings.TrimSpace(*r.Tariffs[idx].TariffId)
-		s.Tariffs[id] = r.Tariffs[idx]
 	}
 	return nil, nil
 }
@@ -83,51 +92,89 @@ func (s *BillingService) ValidateCustomer(con context.Context, cust *Customer) (
 	if cust == nil {
 		return nil, errors.New("invalied customer data")
 	}
-	if cust.Properties == nil || len(cust.Properties) == 0 {
+	if cust.Property == nil {
 		return nil, errors.New("missing customer properties")
 	}
-	for idx := range cust.Properties {
-		p := cust.Properties[idx]
-		if p == nil {
-			return nil, errors.New("invalied customer properties")
+	p := cust.Property
+	if p == nil {
+		return nil, errors.New("invalied customer properties")
+	}
+	if p.Services == nil || len(p.Services) == 0 {
+		return nil, errors.New("missing propertie services")
+	}
+	for sdx := range p.Services {
+		srv := p.Services[sdx]
+		if srv == nil || srv.Connection == nil {
+			continue
 		}
-		if p.Services == nil || len(p.Services) == 0 {
-			return nil, errors.New("missing propertie services")
+		if srv.Connection.CType == nil {
+			return nil, errors.New("missing ctype for connection ")
 		}
-		for sdx := range p.Services {
-			srv := p.Services[sdx]
-			if srv == nil || srv.Connection == nil {
-				continue
-			}
-			if srv.Connection.CType == nil {
-				return nil, errors.New("missing ctype for connection ")
-			}
-			ok, err := s.IsCtgFound(srv.Connection.CType, srv)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				return nil, errors.New("missing tarrif for " + *srv.Connection.CType)
-			}
-			if srv.Connection.SubConnections != nil {
-				for ux := range srv.Connection.SubConnections {
-					sb := srv.Connection.SubConnections[ux]
-					if sb == nil {
-						return nil, errors.New("missing sub connection data " + *srv.Connection.CType)
-					}
-					if sb.CType == nil {
-						return nil, errors.New("missing ctype for sub connection ")
-					}
-					ok, err := s.IsCtgFound(sb.CType, srv)
-					if err != nil {
-						return nil, err
-					}
-					if !ok {
-						return nil, errors.New("missing tarrif for " + *srv.Connection.CType)
-					}
+		ok, err := s.IsCtgFound(srv.Connection.CType, srv)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, errors.New("missing tarrif for " + *srv.Connection.CType)
+		}
+		if srv.Connection.SubConnections != nil {
+			for ux := range srv.Connection.SubConnections {
+				sb := srv.Connection.SubConnections[ux]
+				if sb == nil {
+					return nil, errors.New("missing sub connection data " + *srv.Connection.CType)
+				}
+				if sb.CType == nil {
+					return nil, errors.New("missing ctype for sub connection ")
+				}
+				ok, err := s.IsCtgFound(sb.CType, srv)
+				if err != nil {
+					return nil, err
+				}
+				if !ok {
+					return nil, errors.New("missing tarrif for " + *srv.Connection.CType)
 				}
 			}
 		}
+	}
+	return nil, nil
+}
+
+
+
+// SetCtg setup the ctg for the engin
+func (s *BillingService) SetCtg(c context.Context, Ctgs []*Ctg) (*Empty, error) {
+	if Ctgs == nil ||len(Ctgs)==0 {
+		return nil, errors.New("invalied request")
+	}
+	s.Ctgs = make(map[string]*Ctg)
+	for idx := range Ctgs {
+		if Ctgs[idx].CType == nil {
+			return nil, errors.New("invalied ctg data")
+		}
+		if Ctgs[idx].Tariffs == nil || len(Ctgs[idx].Tariffs) == 0 {
+			return nil, errors.New("invalied ctg tarrif data")
+		}
+		id := strings.TrimSpace(*Ctgs[idx].CType)
+		s.Ctgs[id] = Ctgs[idx]
+	}
+	return nil, nil
+}
+
+// SetTariff setup the tariffes for the engin
+func (s *BillingService) SetTariff(c context.Context,tariffs []*Tariff) (*Empty, error) {
+	if tariffs == nil || len(tariffs) == 0 {
+		return nil, errors.New("invalied request")
+	}
+	s.Tariffs = make(map[string]*Tariff)
+	for idx := range tariffs {
+		if tariffs[idx].TariffId == nil {
+			return nil, errors.New("invalied tariff data")
+		}
+		if tariffs[idx].Bands == nil || len(tariffs[idx].Bands) == 0 {
+			return nil, errors.New("invalied  tarrif bands")
+		}
+		id := strings.TrimSpace(*tariffs[idx].TariffId)
+		s.Tariffs[id] = tariffs[idx]
 	}
 	return nil, nil
 }
@@ -169,9 +216,16 @@ func (s *BillingService) IsTariffFound(tar *string) bool {
 	_, ok := s.Tariffs[_tar]
 	return ok
 }
-
-
-func (s *BillingService) CalcForService(ctype string, no_units int64, consump float64, serv *SERVICE_TYPE) (*float64, error) {
+//calc for service and may be not used
+func (s *BillingService) CalcForService(setting *ChargeSetting,service *Service,reading *ServiceReading) (*float64, error) {
+	var conn=service.Connection
+	if conn==nil{
+		return nil,nil
+	}
+	mainCtype:=conn.CType;
+	if conn.SubConnections==nil || len (conn.SubConnections)==0{
+		return s.CalcForConnection(setting,service.ServiceType,mainCtype,conn.NoUnits,conn.EstimCons,reading);
+	}
 	ctg, ok := s.Ctgs[ctype]
 	if !ok || ctg.Tariffs == nil {
 		return nil, errors.New("missing ctype in setup" + ctype)
@@ -198,3 +252,6 @@ func (s *BillingService) CalcForService(ctype string, no_units int64, consump fl
 
 	return Calc(no_units, consump, tariff)
 }
+
+
+

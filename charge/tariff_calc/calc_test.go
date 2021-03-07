@@ -1,9 +1,10 @@
-package charge
+package tariff_calc
 
 import (
 	"fmt"
 	. "math"
 	"testing"
+	. "MaisrForAdvancedSystems/go-biller/samples"
 )
 
 const errMargin float64 = 0.000000001
@@ -23,7 +24,7 @@ func TestCalc(t *testing.T) {
 	consumps[50] = 157.5
 	consumps[55] = 173.25
 	consumps[100] = 315
-	tar := getTariffSample()
+	tar := GetTariffSample()
 	for consump, value := range consumps {
 		amt, err := Calc(no_units, consump, tar)
 		if err != nil {
@@ -48,7 +49,7 @@ func TestCalc_no_units_3(t *testing.T) {
 	consumps[80] = 112.5
 	consumps[100] = 275
 	consumps[200] = 630
-	tar := getTariffSample()
+	tar := GetTariffSample()
 	for consump, value := range consumps {
 		amt, err := Calc(no_units, consump, tar)
 		if err != nil {

@@ -2,15 +2,42 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/consumptions/consump_getter.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/consumptions/consump_getter_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/is_charge_enable.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/tariff_calc/calc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/calc_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/tariff_calc/calc_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/charge_regular_calc.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/calc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/customer_values.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/customer_values.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/customer_values_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/customer_values_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/check_chargability.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/is_charge_enable_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/charge/regular_charge/check_chargability_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/charge/sample.go" beforeDir="false" afterPath="$PROJECT_DIR$/samples/sample.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/service.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.pb.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/service.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/service.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/service/service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/tools/tools.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -38,7 +65,11 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="F:\development\go\go-biller\billing" />
+      <recent name="F:\development\go\go-biller\consumps" />
+      <recent name="F:\development\go\go-biller\charge\tariff_calc" />
+      <recent name="F:\development\go\go-biller" />
+      <recent name="F:\development\go\go-biller\charge\samples" />
+      <recent name="F:\development\go\go-biller\charge\regular_charge" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -72,16 +103,5 @@
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
     <proxy>direct</proxy>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/charge/charge_regular_calc.go</url>
-          <line>2</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

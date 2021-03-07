@@ -1,9 +1,12 @@
-package charge
+package regular_charge
 
 import (	. "MaisrForAdvancedSystems/go-biller/proto"
 	. "MaisrForAdvancedSystems/go-biller/tools"
-	"testing")
-
+	. "MaisrForAdvancedSystems/go-biller/samples"
+	"testing"
+	"time"
+)
+var bilngDate=time.Now()
 func TestCustTypeIsChargeEnable(t *testing.T) {
 	entityType:=ENTITY_TYPE_CUSTOMER_TYPE
 	MappedValues:=make([]*EntityEnableMappedValue,0)
@@ -15,9 +18,9 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("2"),
 		Value:ToBoolPointer(true),
 	})
-	cr:=getCustTypeChargeRegularSample(entityType ,MappedValues)
-	cust:=getNoramlCustomer(1,false,"00/01",10)
-	isEnable,err:=IsChargeEnable(cr,cust)
+	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cust:=GetNoramlCustomer(1,false,"00/01",10,1,&meterWorking)
+	isEnable,err:=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -25,8 +28,8 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 		t.Errorf("%s:must be disabled while found enabled",entityType)
 	}
 	///
-	cust=getNoramlCustomer(2,false,"00/01",10)
-	isEnable,err=IsChargeEnable(cr,cust)
+	cust=GetNoramlCustomer(2,false,"00/01",10,1,&meterWorking)
+	isEnable,err=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -34,8 +37,8 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 		t.Errorf("%s:must be enabled while found diabled",entityType)
 	}
 
-	cust=getNoramlCustomer(3,false,"00/01",10)
-	isEnable,err=IsChargeEnable(cr,cust)
+	cust=GetNoramlCustomer(3,false,"00/01",10,1,&meterWorking)
+	isEnable,err=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -55,9 +58,9 @@ func TestPropertyVacatedChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("1"),
 		Value:ToBoolPointer(true),
 	})
-	cr:=getCustTypeChargeRegularSample(entityType ,MappedValues)
-	cust:=getNoramlCustomer(1,false,"00/01",10)
-	isEnable,err:=IsChargeEnable(cr,cust)
+	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cust:=GetNoramlCustomer(1,false,"00/01",10,1,&meterWorking)
+	isEnable,err:=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -65,8 +68,8 @@ func TestPropertyVacatedChargeEnable(t *testing.T) {
 		t.Errorf("%s:must be disabled while found enabled",entityType)
 	}
 	///
-	cust=getNoramlCustomer(2,true,"00/01",10)
-	isEnable,err=IsChargeEnable(cr,cust)
+	cust=GetNoramlCustomer(2,true,"00/01",10,1,&meterWorking)
+	isEnable,err=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -90,9 +93,9 @@ func TestPropertyServiceChargeEnable(t *testing.T) {
 		LuKey:Int64ToString(&sewer),
 		Value:ToBoolPointer(true),
 	})
-	cr:=getCustTypeChargeRegularSample(entityType ,MappedValues)
-	cust:=getNoramlCustomer(1,true,"00/01",10)
-	isEnable,err:=IsChargeEnable(cr,cust)
+	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cust:=GetNoramlCustomer(1,true,"00/01",10,1,&meterWorking)
+	isEnable,err:=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -113,7 +116,7 @@ func TestMultiCTypeChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("00/02"),
 		Value:ToBoolPointer(false),
 	})
-	cr:=getCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
 	conns:=[]*SubConnection{
 		&SubConnection{
 			CType:                      ToStringPointer("00/01"),
@@ -128,8 +131,8 @@ func TestMultiCTypeChargeEnable(t *testing.T) {
 			NoUnits:                    ToIntPointer(9),
 		},
 	}
-	cust:=getMultiConnectionCustomer(1,true,30,"00/01",conns)
-	isEnable,err:=IsChargeEnable(cr,cust)
+	cust:=GetMultiConnectionCustomer(1,true,"00/01",30,1,&meterWorking,conns)
+	isEnable,err:=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -151,9 +154,9 @@ func TestCTypeChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("00/02"),
 		Value:ToBoolPointer(false),
 	})
-	cr:=getCustTypeChargeRegularSample(entityType ,MappedValues)
-	cust:=getNoramlCustomer(1,true,"00/01",10)
-	isEnable,err:=IsChargeEnable(cr,cust)
+	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cust:=GetNoramlCustomer(1,true,"00/01",10,1,&meterWorking)
+	isEnable,err:=Check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}

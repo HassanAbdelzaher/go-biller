@@ -6,27 +6,31 @@ import (. "MaisrForAdvancedSystems/go-biller/proto"
 	"log"
 	"time"
 )
-
-func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge *time.Time) (*float64,error){
+type RegularChargeAmount struct {
+	Amount float64
+	TaxAmount *float64
+}
+func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge *time.Time) (*RegularChargeAmount,error){
+	log.Println("calc reg charge:"+*fee.Code)
 	var amount float64=0
+	var taxAmount float64=0
 	if fee==nil || cust==nil{
 		return nil,errors.New("Invalied request")
 	}
 	if fee.IsChargable==nil ||*fee.IsChargable==false {
 		return nil,nil
 	}
-	if fee.EffectiveDate==nil{
+	if fee.EffectDate==nil{
 		return nil,errors.New("Missing Effect Date for charge regular")
 	}
-	var effDate time.Time=fee.EffectiveDate.AsTime()
+	var effDate time.Time=fee.EffectDate.AsTime()
 	if effDate.After(bilngDate){
+		log.Println(effDate.String(),bilngDate.String())
+		log.Println("charge skipped effect date")
 		return nil, nil
 	}
-	if fee.TransCode==nil{
+	if fee.Code==nil{
 		return nil,errors.New("Missing TransCode Date for charge regular")
-	}
-	if fee.TransSCode==nil{
-		return nil,errors.New("Missing TransSCode Date for charge regular")
 	}
 	if fee.ChargeCalcPeriod==nil{
 		return nil,errors.New("Missing Calc Period Date for charge regular")
@@ -43,7 +47,7 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 		if ree.EntityType==nil{
 			return nil,errors.New("missing enabled entity type for charge regular")
 		}
-		isEnabled,err:=Check(fee,cust,bilngDate,nil)
+		isEnabled,err:=check(fee,cust,bilngDate,nil)
 		if err!=nil{
 			return nil,err
 		}
@@ -54,9 +58,9 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 	// calculate charge for fixed type
 	if fee.ChargeType!=nil || *fee.ChargeType==ChargeType_FIXED{
 		if fee.FixedCharge==nil{
-			return nil,errors.New(fmt.Sprintf("missing fixed value for charge regular %v",fee.TransCode))
+			return nil,errors.New(fmt.Sprintf("missing fixed value for charge regular %v",fee.Code))
 		}
-		chrg:=*fee.FixedCharge
+		amount=*fee.FixedCharge
 		var noUnits int64=0
 		if cust.Property!=nil && cust.Property.Services!=nil {
 			for _,sv:=range cust.Property.Services{
@@ -66,15 +70,26 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 			}
 		}
 		if fee.PerUnit!=nil && *fee.PerUnit{
-			return &chrg,nil
+			if fee.GetVatPercentage()>0{
+				taxAmount=amount*fee.GetVatPercentage()/float64(100)
+			}
+			return &RegularChargeAmount{
+				Amount:amount,
+				TaxAmount:&taxAmount,
+			},nil
 		}
 	}
 	/////////////////CALC//////////////////////
 	if fee.RelationChargeEntity.EntityType==nil{
-
 	}
-	custValues:=CustomerValues(*fee.RelationChargeEntity.EntityType,cust)
+	custValues:=customerValues(*fee.RelationChargeEntity.EntityType,cust)
 	log.Println(custValues)
 	///validation of entity
-	return &amount,nil
+	if fee.GetVatPercentage()>0{
+		taxAmount=amount*fee.GetVatPercentage()/float64(100)
+	}
+	return &RegularChargeAmount{
+		Amount:amount,
+		TaxAmount:&taxAmount,
+	},nil
 }

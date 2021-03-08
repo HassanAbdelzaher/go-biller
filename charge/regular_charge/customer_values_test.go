@@ -9,7 +9,7 @@ var meterWorking=MeterOperationStatus_WORKING
 func TestCustomerValues(t *testing.T) {
 	entityType := ENTITY_TYPE_CUSTOMER_TYPE
 	cust := GetNoramlCustomer(1, false, "00/01", 10,1,meterWorking)
-	values:=CustomerValues(entityType,cust)
+	values:=customerValues(entityType,cust)
 	if values==nil{
 		t.Errorf("TestCustomerValues:%s invalied return -- null value",entityType)
 	}
@@ -50,7 +50,7 @@ func TestMultiCtypeCustomerValues(t *testing.T) {
 		},
 	}
 	cust:=GetMultiConnectionCustomer(1,true,"00/01",30,1,meterWorking,conns)
-	values:=CustomerValues(entityType,cust)
+	values:=customerValues(entityType,cust)
 	if values==nil{
 		t.Errorf("TestCustomerValues:%s invalied return -- null value",entityType)
 	}

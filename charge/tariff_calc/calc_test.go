@@ -26,7 +26,7 @@ func TestCalc(t *testing.T) {
 	consumps[100] = 315
 	tar := GetTariffSample()
 	for consump, value := range consumps {
-		amt, err := Calc(no_units, consump, tar)
+		amt, err := Calc(no_units, consump, tar[0],false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -51,7 +51,7 @@ func TestCalc_no_units_3(t *testing.T) {
 	consumps[200] = 630
 	tar := GetTariffSample()
 	for consump, value := range consumps {
-		amt, err := Calc(no_units, consump, tar)
+		amt, err := Calc(no_units, consump, tar[0],false)
 		if err != nil {
 			t.Error(err)
 		}

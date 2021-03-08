@@ -18,9 +18,9 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("2"),
 		Value:ToBoolPointer(true),
 	})
-	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetCustTypeChargeRegularSample()
 	cust:=GetNoramlCustomer(1,false,"00/01",10,1,meterWorking)
-	isEnable,err:=Check(cr,cust,bilngDate,nil)
+	isEnable,err:=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -29,7 +29,7 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 	}
 	///
 	cust=GetNoramlCustomer(2,false,"00/01",10,1,meterWorking)
-	isEnable,err=Check(cr,cust,bilngDate,nil)
+	isEnable,err=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -38,7 +38,7 @@ func TestCustTypeIsChargeEnable(t *testing.T) {
 	}
 
 	cust=GetNoramlCustomer(3,false,"00/01",10,1,meterWorking)
-	isEnable,err=Check(cr,cust,bilngDate,nil)
+	isEnable,err=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -58,9 +58,9 @@ func TestPropertyVacatedChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("1"),
 		Value:ToBoolPointer(true),
 	})
-	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetChargeRegularSample(entityType ,MappedValues)
 	cust:=GetNoramlCustomer(1,false,"00/01",10,1,meterWorking)
-	isEnable,err:=Check(cr,cust,bilngDate,nil)
+	isEnable,err:=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -69,7 +69,7 @@ func TestPropertyVacatedChargeEnable(t *testing.T) {
 	}
 	///
 	cust=GetNoramlCustomer(2,true,"00/01",10,1,meterWorking)
-	isEnable,err=Check(cr,cust,bilngDate,nil)
+	isEnable,err=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -93,9 +93,9 @@ func TestPropertyServiceChargeEnable(t *testing.T) {
 		LuKey:Int64ToString(&sewer),
 		Value:ToBoolPointer(true),
 	})
-	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetChargeRegularSample(entityType ,MappedValues)
 	cust:=GetNoramlCustomer(1,true,"00/01",10,1,meterWorking)
-	isEnable,err:=Check(cr,cust,bilngDate,nil)
+	isEnable,err:=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -116,7 +116,7 @@ func TestMultiCTypeChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("00/02"),
 		Value:ToBoolPointer(false),
 	})
-	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetChargeRegularSample(entityType ,MappedValues)
 	conns:=[]*SubConnection{
 		&SubConnection{
 			CType:                      ToStringPointer("00/01"),
@@ -132,7 +132,7 @@ func TestMultiCTypeChargeEnable(t *testing.T) {
 		},
 	}
 	cust:=GetMultiConnectionCustomer(1,true,"00/01",30,1,meterWorking,conns)
-	isEnable,err:=Check(cr,cust,bilngDate,nil)
+	isEnable,err:=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}
@@ -154,9 +154,9 @@ func TestCTypeChargeEnable(t *testing.T) {
 		LuKey:ToStringPointer("00/02"),
 		Value:ToBoolPointer(false),
 	})
-	cr:=GetCustTypeChargeRegularSample(entityType ,MappedValues)
+	cr:=GetChargeRegularSample(entityType ,MappedValues)
 	cust:=GetNoramlCustomer(1,true,"00/01",10,1,meterWorking)
-	isEnable,err:=Check(cr,cust,bilngDate,nil)
+	isEnable,err:=check(cr,cust,bilngDate,nil)
 	if err!=nil{
 		t.Error(err)
 	}

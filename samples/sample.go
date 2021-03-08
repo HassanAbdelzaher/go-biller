@@ -3,11 +3,79 @@ package samples
 import (
 	. "MaisrForAdvancedSystems/go-biller/proto"
 	. "MaisrForAdvancedSystems/go-biller/tools"
+	"context"
+	"fmt"
 	pt "github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"log"
 	"time"
 )
 
-func GetCtgMap() map[string]*Ctg{
+type TestDummyService struct {
+
+}
+func (s *TestDummyService) Info(cn context.Context,empty *Empty) (*ServiceInfo,error){
+	return &ServiceInfo{
+		Name:                 ToStringPointer("Dummy"),
+		Version:              ToStringPointer("v1.0.0"),
+	},nil
+}
+func (s *TestDummyService) GetSetupData(cn context.Context,empty *Empty) (*ProviderSetupResponce,error){
+	return &ProviderSetupResponce{
+		Ctgs:GetCtgs(),
+		Tariffs:GetTariffSample(),
+		RegularCharges:GetChargeRegulars(),
+	},nil
+}
+func (s *TestDummyService) GetCustomerByCustkey(cn context.Context,key *Key) (*Customer,error){
+	cst:=GetNoramlCustomer(0,false,"00/01",10,1,MeterOperationStatus_WORKING);
+	return cst,nil
+}
+func (s *TestDummyService) GetCustomersByBillgroup(cn context.Context,key *Key) (*CustomersList,error){
+	cst:=GetNoramlCustomer(0,false,"00/01",10,1,MeterOperationStatus_WORKING);
+	conns:=[]*SubConnection{
+		&SubConnection{
+			CType:                      ToStringPointer("00/01"),
+			EstimateConsumptionPerUnit: ToFloatPointer(10),
+			ConsumptionPercentage:      ToFloatPointer(10),
+			NoUnits:                    ToIntPointer(1),
+		},
+		&SubConnection{
+			CType:                      ToStringPointer("00/02"),
+			EstimateConsumptionPerUnit: ToFloatPointer(20),
+			ConsumptionPercentage:      ToFloatPointer(90),
+			NoUnits:                    ToIntPointer(9),
+		},
+	}
+	cust2:=GetMultiConnectionCustomer(1,true,"00/01",30,1,MeterOperationStatus_WORKING,conns)
+	cust3:=GetMultiConnectionCustomer(1,true,"00/01",60,5,MeterOperationStatus_NOT_WORKING,conns)
+	csts:=[]*Customer{cst,cust2,cust3}
+	lst:=CustomersList{
+		Customers:            csts,
+	}
+	return &lst,nil
+}
+func (s *TestDummyService) WriteFinantialData(cn context.Context,data *BillResponce) (*Empty,error){
+	if data==nil{
+		log.Println("data is null nor responce data")
+	}
+	if data.FTransactions==nil{
+		log.Println("data FTransactions is null")
+	}
+	if len(data.FTransactions)==0{
+		log.Println("data length is zero")
+	}
+	for _,t:=range data.FTransactions{
+		if t==nil{
+			log.Println("error:transction is null ")
+			continue
+		}
+		stm:=fmt.Sprintf("ctype:%v service:%v amount:%v taxAmount:%v discountAmount:%v",t.GetCtype(),t.GetServiceType(),t.GetAmount(),t.GetTaxAmount(),t.GetDiscountAmount())
+		log.Println(stm)
+	}
+	return &Empty{},nil
+}
+func GetCtgs() []*Ctg{
 	ctype:="00/01"
 	ctype2:="00/02"
 	water:=SERVICE_TYPE_WATER
@@ -17,6 +85,9 @@ func GetCtgMap() map[string]*Ctg{
 		Tariffs:              []*ServiceTariff{&ServiceTariff{
 			ServiceType:          &water,
 			TarifId:              ToStringPointer("0-1"),
+			Code:ToStringPointer("WATER_AMT"),
+			TaxPercentage:ToFloatPointer(14),
+			DiscountPercentage:ToFloatPointer(10),
 		}},
 		OP_ESTIM_CONS:        ToFloatPointer(float64(20)),
 		NOOP_ESTIM_CONS:      ToFloatPointer(float64(40)),
@@ -27,21 +98,27 @@ func GetCtgMap() map[string]*Ctg{
 		Tariffs:              []*ServiceTariff{&ServiceTariff{
 			ServiceType:          &water,
 			TarifId:              ToStringPointer("0-2"),
+			Code:ToStringPointer("WATER_AMT"),
 		}},
 		OP_ESTIM_CONS:        ToFloatPointer(float64(90)),
 		NOOP_ESTIM_CONS:      ToFloatPointer(float64(150)),
 	}
-	return map[string]*Ctg{*c1.CType:&c1,*c2.CType:&c2}
+	return []*Ctg{&c1,&c2}
 }
-
-func GetTariffSampleMap() map[string]*Tariff{
-	tar:=GetTariffSample()
-	return map[string]*Tariff{tar.GetTariffId():tar}
+func GetCtgMap() map[string]*Ctg{
+	ctgs:=GetCtgs()
+	mp:=make(map[string]*Ctg);
+	for id:=range ctgs{
+		mp[*ctgs[id].CType]=ctgs[id]
+	}
+	return mp
 }
-func GetTariffSample() *Tariff {
+func GetTariffSample() []*Tariff {
 	tar := Tariff{}
 	tar.TariffId=ToStringPointer("0-1")
 	tar.Bands = make([]*TariffBand, 0)
+	effDate:=time.Now().AddDate(-10,0,0)
+	tar.EffectDate=timestamppb.New(effDate)
 	tar.Bands = append(tar.Bands, &TariffBand{
 		From:     ToFloatPointer(0),
 		To:       ToFloatPointer(10),
@@ -72,10 +149,26 @@ func GetTariffSample() *Tariff {
 		Factor:   ToFloatPointer(3.15),
 		Constant: ToFloatPointer(16),
 	})
-	return &tar
+	return []*Tariff{&tar}
 }
-
-func GetCustTypeChargeRegularSample(entityType ENTITY_TYPE,maped []*EntityEnableMappedValue) *RegularCharge{
+func GetChargeRegulars()[]*RegularCharge{
+	return []*RegularCharge{GetCustTypeChargeRegularSample()}
+}
+func GetCustTypeChargeRegularSample() *RegularCharge{
+	entityType:=ENTITY_TYPE_CUSTOMER_TYPE
+	MappedValues:=make([]*EntityEnableMappedValue,0)
+	MappedValues=append(MappedValues,&EntityEnableMappedValue{
+		LuKey:ToStringPointer("1"),
+		Value:ToBoolPointer(false),
+	})
+	MappedValues=append(MappedValues,&EntityEnableMappedValue{
+		LuKey:ToStringPointer("2"),
+		Value:ToBoolPointer(true),
+	})
+	rg:=GetChargeRegularSample(entityType,MappedValues)
+	return rg
+}
+func GetChargeRegularSample(entityType ENTITY_TYPE,MappedValues []*EntityEnableMappedValue) *RegularCharge{
 	var cp=RegularChargePeriod_BILL
 	var effDate=time.Date(2000,1,1,0,0,0,0,time.Local)
 	var tsmp,_=pt.TimestampProto(effDate)
@@ -84,10 +177,8 @@ func GetCustTypeChargeRegularSample(entityType ENTITY_TYPE,maped []*EntityEnable
 	rg.ServiceType=&srvType
 	crel:=ChargeType_RELATION
 	rg.ChargeType=&crel;
-	rg.TransCode=ToIntPointer(60);
-	rg.TransSCode=ToIntPointer(50);
-	rg.TransTitle=ToStringPointer("Water")
-	rg.TransTitle=ToStringPointer("Estidama")
+	rg.Code=ToStringPointer("BASIC_AMT");
+	rg.Title=ToStringPointer("Water")
 	rg.VatPercentage=ToFloatPointer(14)
 	rg.ChargeCalcPeriod=&cp
 	rg.EffectiveDate=tsmp
@@ -97,7 +188,7 @@ func GetCustTypeChargeRegularSample(entityType ENTITY_TYPE,maped []*EntityEnable
 	en.Code=ToStringPointer("98")
 	en.MappedValues=make([]*EntityEnableMappedValue,0)
 	en.EntityType=&entityType
-	en.MappedValues=maped
+	en.MappedValues=MappedValues
 	rg.RelationEnableEntity=&en
 	return &rg
 }

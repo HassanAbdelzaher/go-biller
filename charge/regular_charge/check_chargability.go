@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
+func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
 	if fee==nil{
 		return false,nil
 	}
@@ -27,10 +27,10 @@ func Check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 			}
 		}
 	}else {
-		if fee.EffectiveDate==nil{
+		if fee.EffectDate==nil{
 			return false,errors.New("Missing Effect Date for charge regular")
 		}
-		var effDate time.Time=fee.EffectiveDate.AsTime()
+		var effDate time.Time=fee.EffectDate.AsTime()
 		if effDate.After(bilngDate){
 			return false, nil
 		}
@@ -76,7 +76,7 @@ func Check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 	}
 	typ:=*ree.EntityType
 	var mappedValues=ree.MappedValues
-	var customerValues=CustomerValues(typ,c)
+	var customerValues=customerValues(typ,c)
 	if mappedValues==nil || len(mappedValues)==0 || customerValues==nil || len(customerValues)==0{
 		return false,nil
 	}

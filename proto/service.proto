@@ -3,6 +3,10 @@ package billing;
 
 import "google/protobuf/timestamp.proto";
 
+enum MeterOperationStatus{
+    WORKING=0;
+    NOT_WORKING=1;
+}
 
 enum SERVICE_TYPE {
     WATER =0;
@@ -73,6 +77,11 @@ enum ChargeType{
     RELATION=1;
 }
 
+message Empty {
+}
+
+
+
 //the entity meter used as entity type for calculation or enabling 
 //while the consump claculated 
 message Meter {
@@ -123,7 +132,7 @@ message Property {
     optional int64 NoRooms=8;   
     repeated Service Services=9;
     optional bool IsVacated=10;
-    optional string TOWINSHIP=11;
+    optional string Township=11;
 }
 
 message Customer {
@@ -136,6 +145,7 @@ message Customer {
     optional string InfoFlag4 =7;
     optional string InfoFlag5 =8;
     optional Property Property=9;
+    required string Billgroup=10;
 }
 
 
@@ -147,7 +157,11 @@ message Customer {
 
 message ServiceTariff{
     required SERVICE_TYPE ServiceType = 1;
-    required string TarifId = 2;
+    optional string TarifId = 2;
+    optional bool IsZeroTarif=3;//usful in case if main connection have the service while the sub connection dosn't have
+    required string Code=4;
+    optional double TaxPercentage=5;
+    optional double DiscountPercentage=6;
 }
 
 message Ctg{
@@ -170,18 +184,15 @@ message TariffBand {
  required double From =1;
  required double To=2;
  required double Constant=3;
- required double Factor=4;
+ required double Charge=4;
 }
 
 message Tariff {
     required string TariffId =1;
-    optional double TaxPercentage=2;
     optional double DiscountPercentage=3;
     repeated ExtraTariffFess ExtraFees=4;
     repeated TariffBand Bands=5;
-}
-
-message Empty {
+    required google.protobuf.Timestamp EffectDate=6;
 }
 
 
@@ -216,11 +227,9 @@ message RegularEnableEntity {
 }
 
 message RegularCharge{
-    required google.protobuf.Timestamp EffectiveDate=1;
-    required int64 TransCode=2;
-    required int64 TransSCode=3;
-    required string TransTitle=4;
-    optional string TransSTitle=5;
+    required google.protobuf.Timestamp EffectDate=1;
+    required string Code=2;
+    required string Title=4;
     required bool IsChargable=6;
     required SERVICE_TYPE ServiceType = 7;
     required RegularChargePeriod ChargeCalcPeriod=8;
@@ -259,10 +268,7 @@ message ChargeSetting{
     required google.protobuf.Timestamp BilingDate=3;
     optional bool IgnoreTimeEffect=4;
 }
-enum MeterOperationStatus{
-    WORKING=0;
-    NOT_WORKING=1;
-}
+
 //is overall all actual or estim consumption for each service
 message SubConnectionReading {
     required string Ctype =1;
@@ -283,7 +289,7 @@ message ServiceReading {
     required SERVICE_TYPE ServiceType = 1;
     required Reading Reading=2;
 }
-message BillRequest{
+message ChargeRequest{
     required Customer Customer=1;
     repeated ServiceReading ServicesReadings=2;
     required ChargeSetting Setting=3;
@@ -302,17 +308,90 @@ message BillResponceItemCtg {
     optional double TaxAmount=3;
 }
 
-message BillResponceItem{
-    required SERVICE_TYPE ServiceType = 1;
-    repeated BillResponceItemCtg Charges=2;
-    repeated ExtraCharge ExtraCharges=99;
-}
 
 message BillResponce{
-    repeated BillResponceItem Charges=1;
+    required Customer customer = 1;
+    repeated FinantialTransaction FTransactions=2;
 }
 
-service BillingService {
-  rpc Charge (BillRequest) returns (BillResponce) {}
+message MeasuredTransaction {
+    required double Consump=1;
+    optional double CrReading=2;
+    optional double PrReading=3;
+    required READING_TYPE ReadType = 4;
+    optional string MeterType=5;
+    optional string MeterRef=6;
+}
+
+message FinantialTransaction {
+    required SERVICE_TYPE ServiceType=1;
+    required string Code =2;
+    required google.protobuf.Timestamp  bilngDate=3;
+    required google.protobuf.Timestamp  effDate=4;
+    required double Amount=5;
+    required double TaxAmount=6;
+    required double DiscountAmount=7;
+    required string Ctype =8;
+    required int64 NoUnits=9;
+    optional string PropRef=10;
+    optional MeasuredTransaction MTransaction=11;
+}
+
+
+message ServiceInfo {
+    required string Name=1;
+    required string Version=2;
+}
+
+service BillingChargeService {
+  rpc Info(Empty) returns (ServiceInfo){}
+  rpc Charge (ChargeRequest) returns (BillResponce) {}
   rpc Setup(SetupRequest) returns (Empty) {}
+}
+
+///////////////////////////PROVIDER///////////////////////
+
+
+message ProviderSetupResponce {
+    repeated Tariff Tariffs=1;
+    repeated Ctg Ctgs=2;
+    repeated RegularCharge RegularCharges=3;
+}
+
+service BillingTariffProvider {
+  rpc Info(Empty) returns (ServiceInfo){}
+  rpc GetSetupData (Empty) returns (ProviderSetupResponce) {}
+}
+
+message CustomersList{
+    repeated Customer Customers=1;
+}
+
+message Key {
+    required string Key=1;
+}
+
+service BillingDataProvider {
+  rpc Info(Empty) returns (ServiceInfo){}
+  rpc GetCustomerByCustkey (Key) returns (Customer) {}
+  rpc GetCustomersByBillgroup (Key) returns (CustomersList) {}
+}
+
+
+service BillingDataCousumer {
+  rpc Info(Empty) returns (ServiceInfo){}
+  rpc WriteFinantialData (BillResponce) returns (Empty) {}
+}
+
+
+message Calculationrequest {
+    required Key key=1;
+    repeated ServiceReading ServicesReadings=2;
+    required ChargeSetting Setting=3; 
+}
+
+service Engine {
+  rpc Info(Empty) returns (ServiceInfo){}
+  rpc Calulate(Calculationrequest) returns (BillResponce){}
+  rpc Confirm (BillResponce) returns (Empty) {}
 }

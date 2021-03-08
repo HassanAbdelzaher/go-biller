@@ -5,7 +5,7 @@ import (
 	"MaisrForAdvancedSystems/go-biller/tools"
 )
 
-func CustomerValues(entityType ENTITY_TYPE,c *Customer) ([]*string){
+func customerValues(entityType ENTITY_TYPE,c *Customer) ([]*string){
 	typ:=entityType
 	var values=make([]*string,0)
 	if typ == ENTITY_TYPE_CUSTOMER_TYPE {
@@ -48,7 +48,7 @@ func CustomerValues(entityType ENTITY_TYPE,c *Customer) ([]*string){
 			values=append(values,c.Property.InfoFlag5)
 		}
 		if typ == ENTITY_TYPE_TOWINSHIP {
-			values=append(values,c.Property.TOWINSHIP)
+			values=append(values,c.Property.Township)
 		}
 		services := c.Property.Services
 		if services != nil && len(services) > 0 {

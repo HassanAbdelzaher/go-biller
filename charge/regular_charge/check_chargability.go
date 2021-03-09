@@ -8,12 +8,14 @@ import (
 	"time"
 )
 
-func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,error){
+func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *time.Time) (bool,CustomerValues,error){
+	var approvedValues CustomerValues=make(map[string]*MappedData)
+	var custValues CustomerValues=make(map[string]*MappedData)
 	if fee==nil{
-		return false,nil
+		return false,approvedValues,nil
 	}
 	if fee.IsChargable==nil || !*fee.IsChargable{
-		return false,nil
+		return false,approvedValues,nil
 	}
 	if *fee.ChargeCalcPeriod==RegularChargePeriod_MONTHLY{
 		if lastChargeDate!=nil{
@@ -23,34 +25,37 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 			}
 			nextChargeDate:=lastChargeDate.AddDate(0,int(period),0)
 			if nextChargeDate.After(time.Now()){
-				return false,nil
+				return false,approvedValues,nil
 			}
 		}
 	}else {
 		if fee.EffectDate==nil{
-			return false,errors.New("Missing Effect Date for charge regular")
+			return false,approvedValues,errors.New("Missing Effect Date for charge regular")
 		}
 		var effDate time.Time=fee.EffectDate.AsTime()
 		if effDate.After(bilngDate){
-			return false, nil
+			return false,approvedValues, nil
 		}
+	}
+	if fee.RelationEnableEntity==nil {
+		custValues=customerValues(fee.RelationEnableEntity.GetEntityType(),c,fee.ServiceType)
 	}
 	if fee.Bypass!=nil{
 		if *fee.Bypass{
-			return true,nil
+			return true,custValues,nil
 		}
 	}
 	if fee.ServiceType==nil{
 		log.Println("missing service type")
-		return false,nil
+		return false,approvedValues,nil
 	}
 	if c.Property==nil{
 		log.Println("missing property")
-		return false,nil
+		return false,approvedValues,nil
 	}
 	if c.Property.Services==nil || len(c.Property.Services)==0{
 		log.Println("missing property services")
-		return false,nil
+		return false,approvedValues,nil
 	}
 	found:=false
 	for _,sv:=range c.Property.Services{
@@ -61,33 +66,38 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 	}
 	if !found{
 		log.Println("no customer services match")
-		return false,nil
+		return false,approvedValues,nil
 	}
 	if fee.ChargeType==nil || *fee.ChargeType==ChargeType_FIXED{
-		return true,nil
+		return true,custValues,nil
 	}
 	log.Printf("charge type %v",*fee.ChargeType)
 	if fee.RelationEnableEntity==nil{
-		return false,errors.New("missing enabled entity for charge regular")
+		return false,approvedValues,errors.New("missing enabled entity for charge regular")
 	}
 	ree:=fee.RelationEnableEntity
 	if ree.EntityType==nil{
-		return false,errors.New("missing enabled entity type for charge regular")
+		return false,approvedValues,errors.New("missing enabled entity type for charge regular")
 	}
-	typ:=*ree.EntityType
+	//typ:=*ree.EntityType
 	var mappedValues=ree.MappedValues
-	var customerValues=customerValues(typ,c)
-	if mappedValues==nil || len(mappedValues)==0 || customerValues==nil || len(customerValues)==0{
-		return false,nil
+	if mappedValues==nil || len(mappedValues)==0 || custValues==nil || len(custValues)==0{
+		return false,approvedValues,nil
 	}
-	for _,cstValue:=range customerValues{
+	found=false
+	for cstValue,_:=range custValues{
 		for _,m:=range mappedValues{
-			if tools.StringComparePointer(m.LuKey,cstValue){
-				return m.GetValue(),nil
-				break;
+			if tools.StringComparePointer(m.LuKey,&cstValue){
+				found=true
+				k:=cstValue//copy
+				approvedValues[k]=nil
+				if custValues[cstValue]!=nil{
+					val:=*custValues[cstValue]
+					approvedValues[k]=&val
+				}
 			}
 		}
 	}
-	return false,nil
+	return found,approvedValues,nil
 }
 

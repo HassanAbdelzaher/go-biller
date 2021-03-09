@@ -8,8 +8,9 @@ import (
 var meterWorking=MeterOperationStatus_WORKING
 func TestCustomerValues(t *testing.T) {
 	entityType := ENTITY_TYPE_CUSTOMER_TYPE
+	water:=SERVICE_TYPE_WATER
 	cust := GetNoramlCustomer(1, false, "00/01", 10,1,meterWorking)
-	values:=customerValues(entityType,cust)
+	values:=customerValues(entityType,cust,&water)
 	if values==nil{
 		t.Errorf("TestCustomerValues:%s invalied return -- null value",entityType)
 	}
@@ -17,13 +18,10 @@ func TestCustomerValues(t *testing.T) {
 	if len(values)!=1{
 		t.Errorf("TestCustomerValues:%s expected length 1 while found %d",entityType,len(values))
 	}
-
-	if values[0]==nil{
-		t.Errorf("TestCustomerValues:%s expected length 1 while found null values %d",entityType,len(values))
-	}
 	cstType:="1"
-	if *values[0]!=cstType{
-		t.Errorf("TestCustomerValues:%s expected value %s while found %s",entityType,cstType,*values[0])
+	_,ok:=values[cstType]
+	if !ok{
+		t.Errorf("TestCustomerValues:%s expected value %s while found %s",entityType,cstType,"")
 	}
 }
 
@@ -50,7 +48,7 @@ func TestMultiCtypeCustomerValues(t *testing.T) {
 		},
 	}
 	cust:=GetMultiConnectionCustomer(1,true,"00/01",30,1,meterWorking,conns)
-	values:=customerValues(entityType,cust)
+	values:=customerValues(entityType,cust,nil)
 	if values==nil{
 		t.Errorf("TestCustomerValues:%s invalied return -- null value",entityType)
 	}
@@ -66,8 +64,8 @@ func TestMultiCtypeCustomerValues(t *testing.T) {
 
 	for ctyp,count:=range disitnctCtypes{
 		var cnt int32=0
-		for _,v:=range values{
-			if ctyp==*v{
+		for v,_:=range values{
+			if ctyp==v{
 				cnt++
 			}
 		}

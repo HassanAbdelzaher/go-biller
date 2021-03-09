@@ -86,45 +86,26 @@ func (s *BillingService) Charge(c context.Context, r *ChargeRequest) (*BillRespo
 		return nil,err
 	}
 	log.Println("regsTrans",len(regsTrans))
-	for id:=range regsTrans{
-		fee:=regsTrans[id]
-		feesTrans:=&FinantialTransaction{
-			ServiceType:          fee.Reg.ServiceType,
-			Code:                 fee.Reg.Code,
-			BilngDate:            r.Setting.BilingDate,
-			EffDate:              r.Setting.BilingDate,
-			Amount:               &fee.Amount,
-			TaxAmount:           fee.TaxAmount,
-			DiscountAmount:       nil,
-			Ctype:                getCtype(r.Customer,fee.Reg.GetServiceType()),
-			NoUnits:              getNoUnits(r.Customer,fee.Reg.GetServiceType()),
-			PropRef:              nil,
-		}
-		resp.FTransactions=append(resp.FTransactions,feesTrans)
-	}
+	resp.FTransactions=append(resp.FTransactions,regsTrans...)
 	return &resp, nil
 }
 
-func (s *BillingService) RegCharge(customer * Customer,bilngDate time.Time,lastCharge *time.Time) ([]*RegularChargeResponceItem,error){
+func (s *BillingService) RegCharge(customer * Customer,bilngDate time.Time,lastCharge *time.Time) ([]*FinantialTransaction,error){
 	if s.RegularCharges==nil || len (s.RegularCharges)==0{
 		return nil,nil
 	}
-	rs:=make([]*RegularChargeResponceItem,0)
+	rs:=make([]*FinantialTransaction,0)
 	for id:=range s.RegularCharges{
 		regCh:=s.RegularCharges[id]
 		if regCh==nil{
 			return nil,errors.New("invalied regular charge setup")
 		}
-		chAmt,err:=rg.CalcCharge(regCh,customer,bilngDate,lastCharge)
+		chTrans,err:=rg.CalcCharge(regCh,customer,bilngDate,lastCharge)
 		if err!=nil{
 			return nil,err
 		}
-		if chAmt!=nil{
-			rs=append(rs,&RegularChargeResponceItem{
-				Reg:regCh,
-				Amount:chAmt.Amount,
-				TaxAmount:chAmt.TaxAmount,
-			})
+		if chTrans!=nil{
+			rs=append(rs,chTrans...)
 		}
 	}
 	return rs,nil

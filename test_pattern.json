@@ -87,7 +87,7 @@
     "ChargeCalcPeriod": 1,
     "ChargeInterval": 1,
     "ChargeMonthlyDay": 1,
-    "ChargeType": 0,
+    "ChargeType": 1,
     "FixedCharge": 12,
     "FixedChargeDiscount": 0,
     "MinCharge": 0,
@@ -104,7 +104,19 @@
       },
         {
           "LuKey": "00/02",
-          "Value": false
+          "Value": true
+        }]
+    },
+    "RelationChargeEntity": {
+      "Code": "01",
+      "EntityType": 1,
+      "MappedValues": [{
+        "LuKey": "00/01",
+        "Value": 125
+      },
+        {
+          "LuKey": "00/02",
+          "Value": 250
         }]
     }
   }],
@@ -146,7 +158,7 @@
           {
             "ServiceType": 1,
             "Connection": {
-              "CType": "00/01",
+              "CType": "00/02",
               "CTYPE_GROUP": "00",
               "NoUnits": 1,
               "IsBulkMeter": false,

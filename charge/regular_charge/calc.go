@@ -15,7 +15,6 @@ type RegularChargeAmount struct {
 }
 func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge *time.Time) ([]*FinantialTransaction,error){
 	log.Println("calc reg charge:"+*fee.Code)
-
 	resp:=make([]*FinantialTransaction,0)
 	stampBilnDate:=timestamppb.New(bilngDate)
 	if fee==nil || cust==nil{
@@ -66,7 +65,8 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 		mainNoUnits=1
 	}
 	// calculate charge for fixed type
-	if fee.ChargeType!=nil || *fee.ChargeType==ChargeType_FIXED{
+	if fee.ChargeType==nil || *fee.ChargeType==ChargeType_FIXED{
+		log.Println("charge fixed regular charge")
 		var amount float64=0
 		var taxAmount float64=0
 		if fee.FixedCharge==nil{
@@ -130,9 +130,9 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 					Ctype   *string
 				}{Value:m.GetValue() , NoUnits:mv.noUnits , Ctype:mv.cType }
 			}
-			if found{
-				return nil,errors.New("missing lookup for charge regular:"+fee.GetCode()+" "+cstValue)
-			}
+		}
+		if !found{
+			return nil,errors.New("missing lookup for charge regular:"+fee.GetCode()+" "+cstValue)
 		}
 	}
 	if len (mappedValues)==0{

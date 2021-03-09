@@ -37,7 +37,7 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 			return false,approvedValues, nil
 		}
 	}
-	if fee.RelationEnableEntity==nil {
+	if fee.RelationEnableEntity!=nil {
 		custValues=customerValues(fee.RelationEnableEntity.GetEntityType(),c,fee.ServiceType)
 	}
 	if fee.Bypass!=nil{
@@ -57,21 +57,17 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 		log.Println("missing property services")
 		return false,approvedValues,nil
 	}
-	found:=false
+	haveService:=false
 	for _,sv:=range c.Property.Services{
 		if sv.ServiceType!=nil && *sv.ServiceType==*fee.ServiceType{
-			found=true
+			haveService=true
 			break
 		}
 	}
-	if !found{
+	if !haveService{
 		log.Println("no customer services match")
 		return false,approvedValues,nil
 	}
-	if fee.ChargeType==nil || *fee.ChargeType==ChargeType_FIXED{
-		return true,custValues,nil
-	}
-	log.Printf("charge type %v",*fee.ChargeType)
 	if fee.RelationEnableEntity==nil{
 		return false,approvedValues,errors.New("missing enabled entity for charge regular")
 	}
@@ -79,16 +75,21 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 	if ree.EntityType==nil{
 		return false,approvedValues,errors.New("missing enabled entity type for charge regular")
 	}
+	log.Printf("MappedValues  %v",ree.MappedValues)
+	log.Printf("custValues  %v",custValues)
 	//typ:=*ree.EntityType
 	var mappedValues=ree.MappedValues
 	if mappedValues==nil || len(mappedValues)==0 || custValues==nil || len(custValues)==0{
+		log.Printf("no mapped")
 		return false,approvedValues,nil
 	}
-	found=false
+	found:=false
 	for cstValue,_:=range custValues{
 		for _,m:=range mappedValues{
 			if tools.StringComparePointer(m.LuKey,&cstValue){
-				found=true
+				if m.GetValue(){
+					found=true
+				}
 				k:=cstValue//copy
 				approvedValues[k]=nil
 				if custValues[cstValue]!=nil{
@@ -98,6 +99,8 @@ func check(fee *RegularCharge,c *Customer,bilngDate time.Time,lastChargeDate *ti
 			}
 		}
 	}
+	log.Printf("found  %v",found)
+
 	return found,approvedValues,nil
 }
 

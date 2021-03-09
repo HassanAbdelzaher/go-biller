@@ -2,6 +2,8 @@ syntax = "proto2";
 package billing;
 
 import "google/protobuf/timestamp.proto";
+//Version ="1.1.0"
+//Date 3/9/3/2021 2:54
 
 enum MeterOperationStatus{
     WORKING=0;
@@ -61,8 +63,8 @@ enum ENTITY_TYPE {
 }
 
 enum ChargeRegularCalcStrategy{
-    SUM_ALL=0;
-    EACH_ONE=1;
+    EACH_ONE=0;
+    SUM_ALL=1;
     MAIN_CTYPE=2;   
     HIGHTEST_AMOUNT=3;
     LOWEST_AMOUNT=4;

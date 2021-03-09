@@ -60,7 +60,7 @@ enum ENTITY_TYPE {
     TOWINSHIP=21;
 }
 
-enum ChargeRegularCTypeCalcBase {
+enum ChargeRegularCTypeCalcStrategy{
     SUM_CTYPES=0;
     EACH_CTYPE=1;
     MAIN_CTYPE=2;   
@@ -240,7 +240,7 @@ message RegularCharge{
     optional RegularChargeEntity RelationChargeEntity=16;
     optional RegularEnableEntity RelationEnableEntity=17;
     optional bool Bypass=18;
-    optional ChargeRegularCTypeCalcBase CTypeCalcBase=19;
+    optional ChargeRegularCTypeCalcStrategy CTypeCalcBase=19;
     optional bool PerUnit=20;
 
 }

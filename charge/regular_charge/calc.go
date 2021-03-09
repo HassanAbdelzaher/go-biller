@@ -3,7 +3,6 @@ package regular_charge
 import (. "MaisrForAdvancedSystems/go-biller/proto"
 	"MaisrForAdvancedSystems/go-biller/tools"
 	"errors"
-	"flag"
 	"fmt"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
@@ -131,7 +130,7 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 	for _,v:=range mappedValues{
 		totalMappedValue=totalMappedValue+v
 	}
-	if len (mappedValues)==1 || fee.CTypeCalcBase==nil || *fee.CTypeCalcBase==ChargeRegularCTypeCalcBase_SUM_CTYPES || typ!=ENTITY_TYPE_CTYPE{
+	if len (mappedValues)==1 || fee.CTypeCalcBase==nil || *fee.CTypeCalcBase==ChargeRegularCTypeCalcStrategy_SUM_CTYPES || typ!=ENTITY_TYPE_CTYPE{
 		amount=totalMappedValue
 		if fee.PerUnit!=nil && *fee.PerUnit &&noUnits>1 {
 			amount=amount*float64(noUnits)
@@ -153,7 +152,7 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 		return resp,nil
 	}
 	calcBase:=*fee.CTypeCalcBase
-	if calcBase==ChargeRegularCTypeCalcBase_EACH_CTYPE{
+	if calcBase==ChargeRegularCTypeCalcStrategy_EACH_CTYPE{
 		for k,v:=range mappedValues{
 			var amt float64=v
 			var tax float64=0
@@ -185,7 +184,7 @@ func CalcCharge(fee *RegularCharge,cust *Customer,bilngDate time.Time,lastCharge
 		}
 		return resp,nil
 	}
-	if calcBase==ChargeRegularCTypeCalcBase_MAIN_CTYPE{
+	if calcBase==ChargeRegularCTypeCalcStrategy_MAIN_CTYPE{
 		var amt float64=0
 		var tax float64=0
 		for k,v:=range mappedValues{

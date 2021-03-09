@@ -12,14 +12,14 @@
     "Tariffs": [
       {
         "ServiceType": 0,
-        "TarifId": "0-1",
+        "TarifId": "0-00",
         "Code": "WATER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
       },
       {
         "ServiceType": 1,
-        "TarifId": "0-2",
+        "TarifId": "1-00",
         "Code": "SEWER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
@@ -34,14 +34,14 @@
       "Tariffs": [
         {
           "ServiceType": 0,
-          "TarifId": "0-1",
+          "TarifId": "0-00",
           "Code": "WATER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
         },
         {
           "ServiceType": 1,
-          "TarifId": "0-2",
+          "TarifId": "1-00",
           "Code": "SEWER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
@@ -49,35 +49,72 @@
       ]
     }],
   "Tariffs": [{
-    "TariffId": "0-1",
+    "TariffId": "0-00",
     "EffectDate": {"seconds": 950014449},
     "Bands": [{
       "From": 0,
-      "To": 1000000,
-      "Charge": 0.63,
+      "To": 10,
+      "Charge": 0.65,
       "Constant": 0
     },
       {
-        "From": 0,
-        "To": 1000000,
-        "Charge": 0.63,
+        "From": 10,
+        "To": 20,
+        "Charge": 1.6,
         "Constant": 0
       },
       {
-        "From": 0,
-        "To": 1000000,
-        "Charge": 0.63,
+        "From": 20,
+        "To": 30,
+        "Charge": 2.25,
         "Constant": 0
+      },
+      {
+        "From": 30,
+        "To": 40,
+        "Charge": 2.75,
+        "Constant": 37.5
+      },
+      {
+        "From": 40,
+        "To": 9999999999,
+        "Charge": 3.15,
+        "Constant": 16
       }]
   },{
-    "TariffId": "0-2",
+    "TariffId": "1-00",
     "EffectDate": {"seconds": 950014449},
-    "Bands": [{
-      "From": 0,
-      "To": 1000000,
-      "Charge": 1.2,
-      "Constant": 0
-    }]}],
+    "Bands": [
+      {
+        "From": 0,
+        "To": 10,
+        "Charge": 0.4875,
+        "Constant": 0
+      },
+      {
+        "From": 10,
+        "To": 20,
+        "Charge": 1.2,
+        "Constant": 0
+      },
+      {
+        "From": 20,
+        "To": 30,
+        "Charge": 1.6875,
+        "Constant": 0
+      },
+      {
+        "From": 30,
+        "To": 40,
+        "Charge": 2.0625,
+        "Constant": 28.125
+      },
+      {
+        "From": 40,
+        "To": 9999999999,
+        "Charge": 2.3625,
+        "Constant": 12
+      }]}],
   "RegularCharges": [{
     "Code": "BASIC_AMT",
     "EffectDate": {"seconds": 950014449},
@@ -123,7 +160,7 @@
   "Cases": [{
     "TotalExpectedValue": 123,
     "Customer": {
-      "Custkey": "123456789",
+      "Custkey": "100036990",
       "CustType": 1,
       "IsCompany": false,
       "InfoFlag1": "1",
@@ -139,7 +176,7 @@
           {
             "ServiceType": 0,
             "Connection": {
-              "CType": "00/01",
+              "CType": "00/02",
               "CTYPE_GROUP": "00",
               "NoUnits": 1,
               "IsBulkMeter": false,
@@ -181,8 +218,8 @@
       {
         "ServiceType": 0,
         "Reading": {
-          "Consump": 30,
-          "CrReading": 30,
+          "Consump": 90,
+          "CrReading": 90,
           "PrReading": 0,
           "PrDate": {"seconds": 1604840049},
           "CrDate": {"seconds": 1607432049}
@@ -191,8 +228,8 @@
       {
         "ServiceType": 1,
         "Reading": {
-          "Consump": 30,
-          "CrReading": 30,
+          "Consump": 90,
+          "CrReading": 90,
           "PrReading": 0,
           "PrDate": {"seconds": 1604840049},
           "CrDate": {"seconds": 1607432049}

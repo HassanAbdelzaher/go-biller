@@ -1,18 +1,20 @@
 package tariff_calc
 
 import (
-	. "MaisrForAdvancedSystems/go-biller/proto"
 	"MaisrForAdvancedSystems/go-biller/tools"
 	errors "errors"
+
+	. "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
+
 //Calc portable function for claulate charge for certain c_type
-func Calc(no_units int64, consump float64, tariff *Tariff,isZeroTarif bool) (*float64, error) {
+func Calc(no_units int64, consump float64, tariff *Tariff, isZeroTarif bool) (*float64, error) {
 	var amt float64 = 0
-	if tariff ==nil{
-		if isZeroTarif{
-			return &amt,nil
-		}else {
-			return nil,errors.New("missing tarrif")
+	if tariff == nil {
+		if isZeroTarif {
+			return &amt, nil
+		} else {
+			return nil, errors.New("missing tarrif")
 		}
 	}
 	uCons := consump / float64(no_units)
@@ -42,8 +44,8 @@ func Calc(no_units int64, consump float64, tariff *Tariff,isZeroTarif bool) (*fl
 	//log.Println("==================")
 	amt = 0
 	for band, cons := range bCons {
-		cot:=tools.DefaultF(band.Constant,float64(0))
-		chrg:=tools.DefaultF(band.Charge,float64(0))
+		cot := tools.DefaultF(band.Constant, float64(0))
+		chrg := tools.DefaultF(band.Charge, float64(0))
 		if cons > 0 {
 			charge := cot + chrg*cons
 			amt = amt + charge

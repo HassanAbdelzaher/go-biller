@@ -13,14 +13,14 @@
       {
         "ServiceType": 0,
         "TarifId": "0-00",
-        "Code": "WATER_AMT",
+        "TransCode": "WATER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
       },
       {
         "ServiceType": 1,
         "TarifId": "1-00",
-        "Code": "SEWER_AMT",
+        "TransCode": "SEWER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
       }
@@ -35,14 +35,14 @@
         {
           "ServiceType": 0,
           "TarifId": "0-00",
-          "Code": "WATER_AMT",
+          "TransCode": "WATER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
         },
         {
           "ServiceType": 1,
           "TarifId": "1-00",
-          "Code": "SEWER_AMT",
+          "TransCode": "SEWER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
         }
@@ -116,7 +116,7 @@
         "Constant": 12
       }]}],
   "RegularCharges": [{
-    "Code": "BASIC_AMT",
+    "TransCode": "BASIC_AMT",
     "EffectDate": {"seconds": 950014449},
     "Title": "ESTIDAMA",
     "IsChargable": true,
@@ -169,7 +169,7 @@
       "Property": {
         "PropRef": "123-321",
         "InfoFlag1": "p1",
-        "InfoFlag1": "p2",
+        "InfoFlag2": "p2",
         "IsVacated": false,
         "Township": "cairo",
         "Services": [

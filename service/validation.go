@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-	. "MaisrForAdvancedSystems/go-biller/proto"
 	"strings"
+
+	. "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
 
 /////////////////////vlidations/////////////////
@@ -62,10 +63,9 @@ func (s *BillingService) ValidateCustomer(con context.Context, cust *Customer) (
 			}
 		}
 	}
-	ok:=true
+	ok := true
 	return &ok, nil
 }
-
 
 // IsCtgFound check if the ctype is included into the ctgs
 // also check if the tarrif for the service is founded in engin tarrifs

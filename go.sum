@@ -1,5 +1,7 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/MaisrForAdvancedSystems/biller-charger v0.0.5 h1:EJJY4T3mWKlQV46hLVlgt2pU7hoJJL/tS7wpyJcgEm4=
+github.com/MaisrForAdvancedSystems/biller-charger v0.0.5/go.mod h1:1gSa+5CRTpKk6UYk7NUO6WcNu2qVtqnbpkSmNJs7AmA=
 github.com/MaisrForAdvancedSystems/go-biller-proto v0.0.3 h1:/4Bs7zN5K/bE+8nZLcO8auGR+1ebb2wjjzGdAl52ijM=
 github.com/MaisrForAdvancedSystems/go-biller-proto v0.0.3/go.mod h1:W7nfnz5fFGc4y5RhMRb2as8vPO2ict0MzZ7DaLySZ4g=
 github.com/MaisrForAdvancedSystems/go-biller-proto v0.0.4 h1:KGgh44r6XBg3zPeo4QhPlmw2vO9MN7oYZuSRdmPwNbo=

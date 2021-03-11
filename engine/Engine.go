@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"log"
 
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
@@ -16,10 +17,10 @@ type Engine struct {
 	TariffProvider billing.BillingTariffProviderServer
 }
 
-func NewEngine(chargeProvider billing.BillingChargeServiceServer,
+func NewEngine(tariffProvider billing.BillingTariffProviderServer,
+	chargeProvider billing.BillingChargeServiceServer,
 	dataprovider billing.BillingDataProviderServer,
-	dataConsumer billing.BillingDataCousumerServer,
-	tariffProvider billing.BillingTariffProviderServer) (*Engine, error) {
+	dataConsumer billing.BillingDataCousumerServer) (*Engine, error) {
 	eng := &Engine{
 		ChargeService:  chargeProvider,
 		DataProvider:   dataprovider,
@@ -51,20 +52,21 @@ func (e *Engine) Setup() error {
 	return nil
 }
 func (e *Engine) HandleRequest(cont context.Context, key string, setting *billing.ChargeSetting, readings []*billing.ServiceReading) (*billing.BillResponce, error) {
-	cust, err := e.DataProvider.GetCustomerByCustkey(context.Background(), &billing.Key{
-		Key: nil,
-	})
+	dataReq := billing.Key{
+		Key:       &key,
+		BilngDate: setting.BilingDate,
+	}
+	log.Println(dataReq.BilngDate.AsTime())
+	cust, err := e.DataProvider.GetCustomerByCustkey(context.Background(), &dataReq)
 	if err != nil {
 		return nil, err
 	}
+	log.Println(cust)
 	charges, err := e.ChargeService.Charge(context.Background(), &billing.ChargeRequest{
 		Customer:         cust,
 		ServicesReadings: readings,
 		Setting:          setting,
 	})
-	if err != nil {
-		return nil, err
-	}
 	if err != nil {
 		return nil, err
 	}

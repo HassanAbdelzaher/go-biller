@@ -158,10 +158,10 @@ func (s *BillingService) CalcForService(setting *ChargeSetting, service *Service
 					if srvTar.IsZeroTarif != nil {
 						isZeroTariff = *srvTar.IsZeroTarif
 					}
-					if srvTar.TarifId == nil && !isZeroTariff {
+					if srvTar.TariffCode == nil && !isZeroTariff {
 						return nil, errors.New("missing tariff :" + c.Ctype)
 					} else {
-						tarifId = *srvTar.TarifId
+						tarifId = *srvTar.TariffCode
 						if srvTar.TransCode != nil {
 							transCode = *srvTar.TransCode
 						} else {

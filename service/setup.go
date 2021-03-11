@@ -72,17 +72,17 @@ func (s *BillingService) SetTariff(c context.Context, tariffs []*Tariff) (*Empty
 	s.Tariffs = make(map[string]map[time.Time]*Tariff)
 	for idx := range tariffs {
 		inTarf := tariffs[idx]
-		if inTarf.TariffId == nil {
+		if inTarf.TariffCode == nil {
 			return nil, errors.New("invalied tariff id")
 		}
-		s.Trace(*inTarf.TariffId)
+		s.Trace(*inTarf.TariffCode)
 		if inTarf.Bands == nil || len(tariffs[idx].Bands) == 0 {
 			return nil, errors.New("invalied  tarrif bands")
 		}
 		if inTarf.EffectDate == nil {
 			return nil, errors.New("missing tarrif effect date")
 		}
-		tarifId := strings.TrimSpace(*inTarf.TariffId)
+		tarifId := strings.TrimSpace(*inTarf.TariffCode)
 		//check tarif
 		tar, ok := s.Tariffs[tarifId]
 		if !ok || tar == nil {

@@ -12,14 +12,14 @@
     "Tariffs": [
       {
         "ServiceType": 0,
-        "TarifId": "0-00",
+        "TariffCode": "0-00",
         "TransCode": "WATER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
       },
       {
         "ServiceType": 1,
-        "TarifId": "1-00",
+        "TariffCode": "1-00",
         "TransCode": "SEWER_AMT",
         "TaxPercentage": 14,
         "DiscountPercentage": 0
@@ -34,14 +34,14 @@
       "Tariffs": [
         {
           "ServiceType": 0,
-          "TarifId": "0-00",
+          "TariffCode": "0-00",
           "TransCode": "WATER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
         },
         {
           "ServiceType": 1,
-          "TarifId": "1-00",
+          "TariffCode": "1-00",
           "TransCode": "SEWER_AMT",
           "TaxPercentage": 14,
           "DiscountPercentage": 0
@@ -49,7 +49,7 @@
       ]
     }],
   "Tariffs": [{
-    "TariffId": "0-00",
+    "TariffCode": "0-00",
     "EffectDate": {"seconds": 950014449},
     "Bands": [{
       "From": 0,
@@ -82,7 +82,7 @@
         "Constant": 16
       }]
   },{
-    "TariffId": "1-00",
+    "TariffCode": "1-00",
     "EffectDate": {"seconds": 950014449},
     "Bands": [
       {

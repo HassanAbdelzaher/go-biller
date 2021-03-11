@@ -82,7 +82,7 @@ func (s *BillingService) IsCtgFound(ctg *string, service *Service) (bool, error)
 				tar := cg.Tariffs[cgIdx]
 				if *tar.ServiceType == *service.ServiceType {
 					found = true
-					if !s.IsTariffFound(tar.TarifId) {
+					if !s.IsTariffFound(tar.TariffCode) {
 						return false, errors.New("missing tarrif for " + *cg.CType + " " + service.ServiceType.String())
 					}
 				}

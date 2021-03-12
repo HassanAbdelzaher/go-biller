@@ -19,10 +19,10 @@ var empty *billing.Empty = &billing.Empty{}
 
 func main() {
 	charger := &chrg.BillingChargeService{IsTrace: true}
-	provider := &prov.MasProvider{}
+	masProvider := &prov.MasProvider{}
 	sample := &sample.JsonTestService{}
 	sample.Init("test_pattern.json")
-	eng, err := engine.NewEngine(sample, charger, provider, sample)
+	eng, err := engine.NewEngine(masProvider, charger, masProvider, sample)
 	if err != nil {
 		log.Println(err)
 		return

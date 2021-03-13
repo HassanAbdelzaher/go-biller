@@ -27,9 +27,9 @@ func main() {
 		log.Println(err)
 		return
 	}
-	custkey := "120252964"
+	custkey := "100000992"
 	var cycleLength int64 = 1
-	bilngDate := time.Date(2021, 1, 31, 0, 0, 0, 0, time.UTC)
+	bilngDate := time.Date(2021, 2, 28, 0, 0, 0, 0, time.UTC)
 	stmapBilngDate := timestamppb.New(bilngDate)
 	setting := billing.ChargeSetting{
 		CycleLength:      &cycleLength,
@@ -38,7 +38,7 @@ func main() {
 	}
 	water := billing.SERVICE_TYPE_WATER
 	sewer := billing.SERVICE_TYPE_SEWER
-	var consump float64 = 25
+	var consump float64 = 155
 	var zero float64 = 0
 	readings := []*billing.ServiceReading{{
 		ServiceType: &water,

@@ -5,14 +5,13 @@ import (
 	"context"
 
 	ch "github.com/MaisrForAdvancedSystems/biller-charger"
-	"github.com/MaisrForAdvancedSystems/biller-charger/sample"
 )
 
 type LogFun func(args ...interface{})
 type LogfFun func(stm string, args ...interface{})
 
 func TestService(lg LogFun, erF LogFun, erFF LogfFun, logFF LogfFun, fileName string) {
-	sampleSrv := &sample.JsonTestService{}
+	sampleSrv := &JsonTest{}
 	sampleSrv.Init(fileName)
 	chaSrv := &ch.BillingChargeService{IsTrace: true}
 	engine, err := engine2.NewEngine(sampleSrv, chaSrv, sampleSrv, sampleSrv)

@@ -8,6 +8,16 @@ import (
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
 
+/*
+Info(context.Context, *Empty) (*ServiceInfo, error)
+	Calulate(context.Context, *CalculationRequest) (*BillResponce, error)
+	Confirm(context.Context, *BillResponce) (*Empty, error)
+	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
+	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
+*/
+var VERSION string = "v1.0.1"
+var SERVICE_NAME string = "v1.0.1"
+
 var empty = &billing.Empty{}
 
 type Engine struct {
@@ -32,6 +42,29 @@ func NewEngine(tariffProvider billing.BillingTariffProviderServer,
 		return nil, err
 	}
 	return eng, nil
+}
+func (e *Engine) GetBillByCustkey(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
+	return e.DataProvider.GetBillByCustkey(ctx, rq)
+}
+func (e *Engine) Info(ctx context.Context, rq *billing.Empty) (*billing.ServiceInfo, error) {
+	return &billing.ServiceInfo{Version: &VERSION, Name: &SERVICE_NAME}, nil
+}
+func (e *Engine) GetCustomerByCustkey(ctx context.Context, rq *billing.Key) (*billing.Customer, error) {
+	return e.DataProvider.GetCustomerByCustkey(ctx, rq)
+}
+func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (*billing.LookUpsResponce, error) {
+	return e.DataProvider.GetLoockup(ctx, rq)
+}
+func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*billing.BillResponce, error) {
+	cst := rq.Customer
+	if cst == nil {
+		return nil, errors.New("Customer not found:")
+	}
+	return e.ChargeService.Charge(ctx, &billing.ChargeRequest{
+		Customer:         cst,
+		ServicesReadings: rq.ServicesReadings,
+		Setting:          rq.Setting,
+	})
 }
 func (e *Engine) Setup() error {
 	if e.TariffProvider == nil || e.ChargeService == nil {
@@ -73,7 +106,7 @@ func (e *Engine) HandleRequest(cont context.Context, key string, setting *billin
 	return charges, nil
 }
 
-func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) error {
+func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) (*billing.Empty, error) {
 	_, err := e.DataConsumer.WriteFinantialData(cont, reps)
-	return err
+	return &billing.Empty{}, err
 }

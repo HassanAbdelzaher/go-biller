@@ -31,16 +31,21 @@ func TestService(lg LogFun, erF LogFun, erFF LogfFun, logFF LogfFun, fileName st
 			erF("invalied responce")
 			return
 		}
-		if trans.FTransactions == nil {
+		if trans.Bill == nil {
+			erF("invalied responce")
+			return
+		}
+
+		if trans.Bill.FTransactions == nil {
 			erF("invalied responce FTransactions")
 			return
 		}
 		var totalAmount float64 = 0
-		for _, r := range trans.FTransactions {
+		for _, r := range trans.Bill.FTransactions {
 			totalAmount = totalAmount + r.GetAmount()
 		}
 		if totalAmount != cas.TotalExpectedValue {
-			for _, r := range trans.FTransactions {
+			for _, r := range trans.Bill.FTransactions {
 				logFF("code:%v service:%v ctype:%v amount:%v no_units:%v", r.GetCode(), r.GetServiceType(), r.GetCtype(), r.GetAmount(), r.GetNoUnits())
 			}
 			erFF("expected value %v while found %v", cas.TotalExpectedValue, totalAmount)

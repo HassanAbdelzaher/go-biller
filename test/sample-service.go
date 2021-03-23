@@ -15,3 +15,7 @@ type JsonTest struct {
 func (s *JsonTest) GetLoockup(cn context.Context, en *pr.Entity) (*pr.LookUpsResponce, error) {
 	return nil, errors.New("json service : dos't support lookups")
 }
+
+func (s *JsonTest) GetBillByCustkey(cn context.Context, en *pr.GetBillRequest) (*pr.BillResponce, error) {
+	return nil, errors.New("json service : dos't support lookups")
+}

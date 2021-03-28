@@ -56,15 +56,24 @@ func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (*billing.L
 	return e.DataProvider.GetLoockup(ctx, rq)
 }
 func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*billing.BillResponce, error) {
+	log.Println("calculate")
 	cst := rq.Customer
 	if cst == nil {
 		return nil, errors.New("Customer not found:")
 	}
-	return e.ChargeService.Charge(ctx, &billing.ChargeRequest{
+
+	bs, err := e.ChargeService.Charge(ctx, &billing.ChargeRequest{
 		Customer:         cst,
 		ServicesReadings: rq.ServicesReadings,
 		Setting:          rq.Setting,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if bs.Customer == nil {
+		bs.Customer = cst
+	}
+	return bs, nil
 }
 func (e *Engine) Setup() error {
 	if e.TariffProvider == nil || e.ChargeService == nil {

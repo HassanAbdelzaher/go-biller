@@ -3,9 +3,9 @@ module MaisrForAdvancedSystems/go-biller
 go 1.16
 
 require (
-	github.com/MaisrForAdvancedSystems/biller-charger v0.1.22
-	github.com/MaisrForAdvancedSystems/biller-mas-provider v0.1.19
-	github.com/MaisrForAdvancedSystems/go-biller-proto v0.0.16
+	github.com/MaisrForAdvancedSystems/biller-charger v0.1.28
+	github.com/MaisrForAdvancedSystems/biller-mas-provider v0.1.24
+	github.com/MaisrForAdvancedSystems/go-biller-proto v0.0.22
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/golang/protobuf v1.5.1
 	github.com/improbable-eng/grpc-web v0.14.0

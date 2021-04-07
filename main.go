@@ -147,17 +147,17 @@ func runTest() {
 	if rs == nil {
 		log.Println("invalied responce")
 	}
-	if rs.Bill == nil {
+	if rs.Bills == nil {
 		log.Println("invalied responce:null Bill")
 	}
-	if rs.Bill.FTransactions == nil {
+	if rs.Bills[0].FTransactions == nil {
 		log.Println("invalied responce transcation")
 	}
-	if len(rs.Bill.FTransactions) == 0 {
+	if len(rs.Bills[0].FTransactions) == 0 {
 		log.Println("invalied responce empty transcation")
 	}
 	log.Println("succssed")
-	for _, t := range rs.Bill.FTransactions {
+	for _, t := range rs.Bills[0].FTransactions {
 		log.Println(t.GetCode(), t.GetAmount())
 	}
 }

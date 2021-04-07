@@ -43,8 +43,12 @@ func NewEngine(tariffProvider billing.BillingTariffProviderServer,
 	}
 	return eng, nil
 }
-func (e *Engine) GetBillByCustkey(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
-	return e.DataProvider.GetBillByCustkey(ctx, rq)
+func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
+	return e.DataProvider.GetBillsByCustkey(ctx, rq)
+}
+
+func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
+	return e.DataProvider.GetBillsByFormNo(ctx, rq)
 }
 func (e *Engine) Info(ctx context.Context, rq *billing.Empty) (*billing.ServiceInfo, error) {
 	return &billing.ServiceInfo{Version: &VERSION, Name: &SERVICE_NAME}, nil
@@ -70,9 +74,6 @@ func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*bill
 	if err != nil {
 		return nil, err
 	}
-	if bs.Customer == nil {
-		bs.Customer = cst
-	}
 	return bs, nil
 }
 func (e *Engine) Setup() error {
@@ -83,10 +84,11 @@ func (e *Engine) Setup() error {
 	if err != nil {
 		return err
 	}
-	_, err = e.ChargeService.Setup(context.Background(), &billing.SetupRequest{
-		Tariffs:       setups.GetTariffs(),
-		Ctgs:          setups.GetCtgs(),
-		RegularCharge: setups.GetRegularCharges(),
+	_, err = e.ChargeService.Setup(context.Background(), &billing.SetupData{
+		Tariffs:        setups.GetTariffs(),
+		Ctgs:           setups.GetCtgs(),
+		RegularCharges: setups.GetRegularCharges(),
+		TransCodes:     setups.TransCodes,
 	})
 	if err != nil {
 		return err

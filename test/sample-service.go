@@ -16,6 +16,10 @@ func (s *JsonTest) GetLoockup(cn context.Context, en *pr.Entity) (*pr.LookUpsRes
 	return nil, errors.New("json service : dos't support lookups")
 }
 
-func (s *JsonTest) GetBillByCustkey(cn context.Context, en *pr.GetBillRequest) (*pr.BillResponce, error) {
+func (s *JsonTest) GetBillsByCustkey(cn context.Context, en *pr.GetBillRequest) (*pr.BillResponce, error) {
+	return nil, errors.New("json service : dos't support lookups")
+}
+
+func (s *JsonTest) GetBillsByFormNo(cn context.Context, en *pr.GetBillRequest) (*pr.BillResponce, error) {
 	return nil, errors.New("json service : dos't support lookups")
 }

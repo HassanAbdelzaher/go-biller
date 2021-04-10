@@ -8,13 +8,12 @@ import (
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
 
-/*
-Info(context.Context, *Empty) (*ServiceInfo, error)
-	Calulate(context.Context, *CalculationRequest) (*BillResponce, error)
-	Confirm(context.Context, *BillResponce) (*Empty, error)
-	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
-	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
-*/
+// Info(context.Context, *Empty) (*ServiceInfo, error)
+// 	Calulate(context.Context, *CalculationRequest) (*BillResponce, error)
+// 	Confirm(context.Context, *BillResponce) (*Empty, error)
+// 	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
+// 	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
+
 var VERSION string = "v1.0.1"
 var SERVICE_NAME string = "v1.0.1"
 
@@ -61,6 +60,11 @@ func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (*billing.L
 }
 func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*billing.BillResponce, error) {
 	log.Println("calculate")
+	log.Println("Len,", len(rq.OldFTransactions))
+	for idx := range rq.OldFTransactions {
+		oldTrans := rq.OldFTransactions[idx]
+		log.Println("Code", *oldTrans.Code, "Amount", *oldTrans.Amount)
+	}
 	cst := rq.Customer
 	if cst == nil {
 		return nil, errors.New("Customer not found:")
@@ -70,6 +74,8 @@ func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*bill
 		Customer:         cst,
 		ServicesReadings: rq.ServicesReadings,
 		Setting:          rq.Setting,
+		Services:         rq.Services,
+		OldFTransactions: rq.OldFTransactions,
 	})
 	if err != nil {
 		return nil, err
@@ -118,6 +124,17 @@ func (e *Engine) HandleRequest(cont context.Context, key string, setting *billin
 }
 
 func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) (*billing.Empty, error) {
-	_, err := e.DataConsumer.WriteFinantialData(cont, reps)
+	log.Println("Engine:Confirm Bills Count", len(reps.Bills))
+	log.Println("Engine:Confirm First Bill")
+	rep := billing.BillResponce{Bills: []*billing.Bill{}}
+	for idx := range reps.Bills {
+		bill := *reps.Bills[idx]
+		log.Println("Engine:Confirm Bill ", *bill.PaymentNo, *bill.Customer.CustType)
+		rep.Bills = append(rep.Bills, &bill)
+	}
+	_, err := e.DataConsumer.WriteFinantialData(cont, &rep)
+	if err != nil {
+		log.Println("Engine:Confirm Error ", err.Error())
+	}
 	return &billing.Empty{}, err
 }

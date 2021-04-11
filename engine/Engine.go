@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"sort"
 
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 )
@@ -42,8 +43,29 @@ func NewEngine(tariffProvider billing.BillingTariffProviderServer,
 	}
 	return eng, nil
 }
+
+// GetBillsByCustkey Imp
 func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
-	return e.DataProvider.GetBillsByCustkey(ctx, rq)
+	response, err := e.DataProvider.GetBillsByCustkey(ctx, rq)
+	if err != nil {
+		return nil, err
+	}
+	if response != nil {
+		if len(response.Bills) > 0 {
+			bills := []*billing.Bill{}
+			for idx := range response.Bills {
+				bill := response.Bills[idx]
+				if bill != nil && bill.BilngDate != nil {
+					bills = append(bills, bill)
+				}
+			}
+			sort.SliceStable(bills, func(i, j int) bool {
+				return (*bills[i].BilngDate).AsTime().Before((*bills[j].BilngDate).AsTime())
+			})
+			response.Bills = bills
+		}
+	}
+	return response, nil
 }
 
 func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {

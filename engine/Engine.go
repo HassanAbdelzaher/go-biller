@@ -60,7 +60,7 @@ func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillReque
 				}
 			}
 			sort.SliceStable(bills, func(i, j int) bool {
-				return (*bills[i].BilngDate).AsTime().Before((*bills[j].BilngDate).AsTime())
+				return (*bills[j].BilngDate).AsTime().Before((*bills[i].BilngDate).AsTime())
 			})
 			response.Bills = bills
 		}

@@ -15,8 +15,8 @@ import (
 // 	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
 // 	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
 
-var VERSION string = "v1.0.1"
-var SERVICE_NAME string = "v1.0.1"
+var VERSION string = "v1.2.0"
+var SERVICE_NAME string = "go_biller"
 
 var empty = &billing.Empty{}
 
@@ -71,6 +71,9 @@ func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillReque
 func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
 	return e.DataProvider.GetBillsByFormNo(ctx, rq)
 }
+func (e *Engine) Login(ctx context.Context, rq *billing.LoginRequest) (*billing.LoginResponce, error) {
+	return e.DataProvider.Login(ctx, rq)
+}
 func (e *Engine) Info(ctx context.Context, rq *billing.Empty) (*billing.ServiceInfo, error) {
 	return &billing.ServiceInfo{Version: &VERSION, Name: &SERVICE_NAME}, nil
 }
@@ -82,11 +85,6 @@ func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (*billing.L
 }
 func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*billing.BillResponce, error) {
 	log.Println("calculate")
-	log.Println("Len,", len(rq.OldFTransactions))
-	for idx := range rq.OldFTransactions {
-		oldTrans := rq.OldFTransactions[idx]
-		log.Println("Code", *oldTrans.Code, "Amount", *oldTrans.Amount)
-	}
 	cst := rq.Customer
 	if cst == nil {
 		return nil, errors.New("Customer not found:")
@@ -97,7 +95,7 @@ func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*bill
 		ServicesReadings: rq.ServicesReadings,
 		Setting:          rq.Setting,
 		Services:         rq.Services,
-		OldFTransactions: rq.OldFTransactions,
+		OldBill:          rq.OldBill,
 	})
 	if err != nil {
 		return nil, err

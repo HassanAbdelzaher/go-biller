@@ -12,6 +12,10 @@ type JsonTest struct {
 	sample.JsonTestService
 }
 
+func (e *JsonTest) Login(ctx context.Context, rq *pr.LoginRequest) (*pr.LoginResponce, error) {
+	return &pr.LoginResponce{}, nil
+}
+
 func (s *JsonTest) GetLoockup(cn context.Context, en *pr.Entity) (*pr.LookUpsResponce, error) {
 	return nil, errors.New("json service : dos't support lookups")
 }

@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"MaisrForAdvancedSystems/go-biller/middlewares"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"sort"
 
@@ -15,7 +17,7 @@ import (
 // 	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
 // 	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
 
-var VERSION string = "v1.2.0"
+var VERSION string = "v1.4.0"
 var SERVICE_NAME string = "go_biller"
 
 var empty = &billing.Empty{}
@@ -45,7 +47,12 @@ func NewEngine(tariffProvider billing.BillingTariffProviderServer,
 }
 
 // GetBillsByCustkey Imp
-func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
+func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillRequest) (resp *billing.BillResponce, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	response, err := e.DataProvider.GetBillsByCustkey(ctx, rq)
 	if err != nil {
 		return nil, err
@@ -71,19 +78,56 @@ func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillReque
 func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
 	return e.DataProvider.GetBillsByFormNo(ctx, rq)
 }
-func (e *Engine) Login(ctx context.Context, rq *billing.LoginRequest) (*billing.LoginResponce, error) {
-	return e.DataProvider.Login(ctx, rq)
+func (e *Engine) Login(ctx context.Context, rq *billing.LoginRequest) (resp *billing.LoginResponce, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
+	resp,err=e.DataProvider.Login(ctx, rq)
+	if err!=nil{
+		return nil,err
+	}
+	if rq.Username==nil{
+		return resp,err
+	}
+	tkn,err:=middlewares.CreateToken(*rq.Username)
+	if err!=nil{
+		return nil,err
+	}
+	resp.Token=&tkn
+	return resp,err
 }
-func (e *Engine) Info(ctx context.Context, rq *billing.Empty) (*billing.ServiceInfo, error) {
+func (e *Engine) Info(ctx context.Context, rq *billing.Empty) (resp *billing.ServiceInfo, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	return &billing.ServiceInfo{Version: &VERSION, Name: &SERVICE_NAME}, nil
 }
-func (e *Engine) GetCustomerByCustkey(ctx context.Context, rq *billing.Key) (*billing.Customer, error) {
+func (e *Engine) GetCustomerByCustkey(ctx context.Context, rq *billing.Key) (resp *billing.Customer,err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	return e.DataProvider.GetCustomerByCustkey(ctx, rq)
 }
-func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (*billing.LookUpsResponce, error) {
+func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (resp *billing.LookUpsResponce, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	return e.DataProvider.GetLoockup(ctx, rq)
 }
-func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*billing.BillResponce, error) {
+func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (resp *billing.BillResponce, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	log.Println("calculate")
 	cst := rq.Customer
 	if cst == nil {
@@ -102,7 +146,12 @@ func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (*bill
 	}
 	return bs, nil
 }
-func (e *Engine) Setup() error {
+func (e *Engine) Setup() (err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	if e.TariffProvider == nil || e.ChargeService == nil {
 		return errors.New("Engine not created properly")
 	}
@@ -121,7 +170,12 @@ func (e *Engine) Setup() error {
 	}
 	return nil
 }
-func (e *Engine) HandleRequest(cont context.Context, key string, setting *billing.ChargeSetting, readings []*billing.ServiceReading) (*billing.BillResponce, error) {
+func (e *Engine) HandleRequest(cont context.Context, key string, setting *billing.ChargeSetting, readings []*billing.ServiceReading) (resp *billing.BillResponce, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	dataReq := billing.Key{
 		Key:       &key,
 		BilngDate: setting.BilingDate,
@@ -142,8 +196,12 @@ func (e *Engine) HandleRequest(cont context.Context, key string, setting *billin
 	}
 	return charges, nil
 }
-
-func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) (*billing.Empty, error) {
+func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) (resp *billing.Empty, err error) {
+	defer func() {
+		if er:=recover();er!=nil{
+			err=errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v",er))
+		}
+	}()
 	log.Println("Engine:Confirm Bills Count", len(reps.Bills))
 	log.Println("Engine:Confirm First Bill")
 	rep := billing.BillResponce{Bills: []*billing.Bill{}}
@@ -152,7 +210,7 @@ func (e *Engine) Confirm(cont context.Context, reps *billing.BillResponce) (*bil
 		log.Println("Engine:Confirm Bill ", *bill.PaymentNo, *bill.Customer.CustType)
 		rep.Bills = append(rep.Bills, &bill)
 	}
-	_, err := e.DataConsumer.WriteFinantialData(cont, &rep)
+	_, err = e.DataConsumer.WriteFinantialData(cont, &rep)
 	if err != nil {
 		log.Println("Engine:Confirm Error ", err.Error())
 	}

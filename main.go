@@ -2,6 +2,7 @@ package main
 
 import (
 	"MaisrForAdvancedSystems/go-biller/engine"
+	"MaisrForAdvancedSystems/go-biller/middlewares"
 	stest "MaisrForAdvancedSystems/go-biller/test"
 	"context"
 	"flag"
@@ -18,6 +19,7 @@ import (
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	//"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -29,9 +31,12 @@ var empty *billing.Empty = &billing.Empty{}
 func main() {
 	port := 25566
 	flag.Parse()
-	var opts []grpc.ServerOption
+	opts :=[]grpc.ServerOption{
+		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(middlewares.TokenAuthFunc)),
+		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.TokenAuthFunc)),
+	}
 	grpcServer := grpc.NewServer(opts...)
-	charger := &chrg.BillingChargeService{IsTrace: true}
+	charger := &chrg.BillingChargeService{IsTrace: false}
 	masProvider := &prov.MasProvider{}
 	engi, err := engine.NewEngine(masProvider, charger, masProvider, masProvider)
 	if err != nil {
@@ -61,6 +66,7 @@ func main() {
 			),
 		),
 	}
+	log.Printf("starting service :%v", engine.VERSION)
 	httpSrv.ListenAndServe()
 }
 

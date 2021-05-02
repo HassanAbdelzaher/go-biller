@@ -14,7 +14,6 @@ import (
 	"log"
 
 	chrg "github.com/MaisrForAdvancedSystems/biller-charger"
-	sample "github.com/MaisrForAdvancedSystems/biller-charger/sample"
 	prov "github.com/MaisrForAdvancedSystems/biller-mas-provider"
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
@@ -31,7 +30,7 @@ var empty *billing.Empty = &billing.Empty{}
 func main() {
 	port := 25566
 	flag.Parse()
-	opts :=[]grpc.ServerOption{
+	opts := []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(middlewares.TokenAuthFunc)),
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.TokenAuthFunc)),
 	}
@@ -105,7 +104,7 @@ func grpcTrafficSplitter(fallback http.Handler, grpcHandler http.Handler) http.H
 func runTest() {
 	charger := &chrg.BillingChargeService{IsTrace: true}
 	masProvider := &prov.MasProvider{}
-	sample := &sample.JsonTestService{}
+	sample := &stest.JsonTest{}
 	sample.Init("test_pattern.json")
 	eng, err := engine.NewEngine(masProvider, charger, masProvider, sample)
 	if err != nil {
@@ -175,3 +174,4 @@ func TestJsonService() {
 	logff := log.Printf
 	stest.TestService(logF, errF, errff, logff, "test_patter.json")
 }
+

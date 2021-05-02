@@ -2,14 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b6b98c2f-e779-434f-947a-f15f3bed5449" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/middlewares/auth.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/engine/Engine.go" beforeDir="false" afterPath="$PROJECT_DIR$/engine/Engine.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/public/assets/main.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/run.go" beforeDir="false" afterPath="$PROJECT_DIR$/test/run.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/sample-service.go" beforeDir="false" afterPath="$PROJECT_DIR$/test/sample-service.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -81,6 +80,7 @@
       <module name="go-biller" />
       <working_directory value="$PROJECT_DIR$/" />
       <go_parameters value="-i" />
+      <parameters value="--debug=true" />
       <kind value="DIRECTORY" />
       <filePath value="$PROJECT_DIR$/" />
       <package value="MaisrForAdvancedSystems/go-biller" />
@@ -167,9 +167,184 @@
           <option name="timeStamp" value="17" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>251</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>252</line>
+          <option name="timeStamp" value="21" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>614</line>
+          <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>621</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>615</line>
+          <option name="timeStamp" value="24" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>616</line>
+          <option name="timeStamp" value="25" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>619</line>
+          <option name="timeStamp" value="26" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>625</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>628</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>629</line>
+          <option name="timeStamp" value="29" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/providers/data-provider.go</url>
+          <line>640</line>
+          <option name="timeStamp" value="30" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>22</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>25</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>24</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>26</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>44</line>
+          <option name="timeStamp" value="35" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>37</line>
+          <option name="timeStamp" value="36" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>28</line>
+          <option name="timeStamp" value="37" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>31</line>
+          <option name="timeStamp" value="38" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.89/tools/bill-items.go</url>
+          <line>34</line>
+          <option name="timeStamp" value="39" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.90/providers/data-consumer.go</url>
+          <line>85</line>
+          <option name="timeStamp" value="44" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.90/providers/data-consumer.go</url>
+          <line>297</line>
+          <option name="timeStamp" value="45" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v0.1.90/providers/data-consumer.go</url>
+          <line>298</line>
+          <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-charger@v1.64.0/service.go</url>
+          <line>240</line>
+          <option name="timeStamp" value="47" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/engine/Engine.go</url>
-          <line>117</line>
-          <option name="timeStamp" value="18" />
+          <line>146</line>
+          <option name="timeStamp" value="51" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.99.0/providers/data-consumer.go</url>
+          <line>85</line>
+          <option name="timeStamp" value="55" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.99.0/providers/data-consumer.go</url>
+          <line>90</line>
+          <option name="timeStamp" value="56" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.99.0/providers/data-consumer.go</url>
+          <line>65</line>
+          <option name="timeStamp" value="57" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.99.0/providers/data-consumer.go</url>
+          <line>133</line>
+          <option name="timeStamp" value="58" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.99.0/providers/data-consumer.go</url>
+          <line>173</line>
+          <option name="timeStamp" value="60" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.100.0/tools/bill-items.go</url>
+          <line>79</line>
+          <option name="timeStamp" value="68" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.100.0/providers/data-consumer.go</url>
+          <line>173</line>
+          <option name="timeStamp" value="69" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/engine/Engine.go</url>
+          <line>206</line>
+          <option name="timeStamp" value="70" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.101.0/providers/data-consumer.go</url>
+          <line>133</line>
+          <option name="timeStamp" value="71" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.101.0/providers/data-consumer.go</url>
+          <line>137</line>
+          <option name="timeStamp" value="72" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$USER_HOME$/go/pkg/mod/github.com/!maisr!for!advanced!systems/biller-mas-provider@v1.101.0/providers/data-consumer.go</url>
+          <line>140</line>
+          <option name="timeStamp" value="73" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

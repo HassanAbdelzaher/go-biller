@@ -27,3 +27,9 @@ func (s *JsonTest) GetBillsByCustkey(cn context.Context, en *pr.GetBillRequest) 
 func (s *JsonTest) GetBillsByFormNo(cn context.Context, en *pr.GetBillRequest) (*pr.BillResponce, error) {
 	return nil, errors.New("json service : dos't support lookups")
 }
+
+
+func (s *JsonTest) WriteFinantialData(cn context.Context, data *pr.PostMessage) (*pr.Empty, error) {
+	return s.JsonTestService.WriteFinantialData(cn,data)
+}
+

@@ -19,7 +19,7 @@ import (
 // 	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
 // 	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
 
-var VERSION string = "v1.5.0"
+var VERSION string = "v1.6.0"
 var SERVICE_NAME string = "go_biller"
 
 var empty = &billing.Empty{}

@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/MaisrForAdvancedSystems/biller-charger v1.68.0
-	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.102.0
+	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.105.0
 	github.com/MaisrForAdvancedSystems/go-biller-proto v1.55.0
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

@@ -27,6 +27,12 @@ github.com/MaisrForAdvancedSystems/biller-mas-provider v1.101.0 h1:Q/UPvoCf5cA40
 github.com/MaisrForAdvancedSystems/biller-mas-provider v1.101.0/go.mod h1:8TH0l0eoPSUMCVKGJk79aY2iA/NPj9BnXK9jMqT3pRE=
 github.com/MaisrForAdvancedSystems/biller-mas-provider v1.102.0 h1:g5AAidGF/u4r6Tznsw/q7QR3arP/VbP3FjWT+oydziQ=
 github.com/MaisrForAdvancedSystems/biller-mas-provider v1.102.0/go.mod h1:8TH0l0eoPSUMCVKGJk79aY2iA/NPj9BnXK9jMqT3pRE=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.103.0 h1:GI1YzisTrklLJIRTpzBtXV6ovmucX2ND7iQ5N9gxh04=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.103.0/go.mod h1:8TH0l0eoPSUMCVKGJk79aY2iA/NPj9BnXK9jMqT3pRE=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.104.0 h1:gbH2QpevPlBXqJHsas5/80l4ChyYcSbL8y0xPPPwGjs=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.104.0/go.mod h1:8TH0l0eoPSUMCVKGJk79aY2iA/NPj9BnXK9jMqT3pRE=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.105.0 h1:6jflRALvqr+EAV9iApGnjvhgJtVHO849o8E6WWyzGMY=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.105.0/go.mod h1:8TH0l0eoPSUMCVKGJk79aY2iA/NPj9BnXK9jMqT3pRE=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.55.0 h1:SqmhvqHY1cGhWsWJfsGxSUWgTzAYIQ8GjEpN0zj1yJU=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.55.0/go.mod h1:iD34dWRvROYnnFO0h6W+z5yKGSJB/DRUD1574JrxNyE=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.50.0 h1:xWLJHOsRURGoNPPK4YgH7v0/dsXr5MQlpQvPN12ASUw=

@@ -19,7 +19,7 @@ import (
 // 	GetCustomerByCustkey(context.Context, *Key) (*Customer, error)
 // 	GetLoockup(context.Context, *Entity) (*LookUpsResponce, error)
 
-var VERSION string = "v1.6.0"
+var VERSION string = "v2.1.0"
 var SERVICE_NAME string = "go_biller"
 
 var empty = &billing.Empty{}
@@ -76,7 +76,6 @@ func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillReque
 	}
 	return response, nil
 }
-
 func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
 	return e.DataProvider.GetBillsByFormNo(ctx, rq)
 }
@@ -123,6 +122,14 @@ func (e *Engine) GetLoockup(ctx context.Context, rq *billing.Entity) (resp *bill
 		}
 	}()
 	return e.DataProvider.GetLoockup(ctx, rq)
+}
+func (e *Engine) GetCtgs(ctx context.Context, rq *billing.Empty) (resp *billing.CtgsResponce, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v", er))
+		}
+	}()
+	return e.DataProvider.GetCtgs(ctx, rq)
 }
 func (e *Engine) Calulate(ctx context.Context, rq *billing.ChargeRequest) (resp *billing.BillResponce, err error) {
 	defer func() {

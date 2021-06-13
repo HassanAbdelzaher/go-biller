@@ -129,7 +129,7 @@ func parseToken(token string) (*Claims, error) {
 func CreateToken(userName string) (string, error) {
 	// Declare the expiration time of the token
 	// here, we have kept it as 5 minutes
-	expirationTime := time.Now().Add(60 * time.Minute)
+	expirationTime := time.Now().Add(10 * time.Hour)
 	// Create the JWT claims, which includes the username and expiry time
 	claims := &Claims{
 		Username: userName,

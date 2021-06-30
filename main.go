@@ -51,6 +51,15 @@ func main() {
 	log.Printf("serive listen:%v", port)
 	billing.RegisterEngineServer(grpcServer, engi)
 	wrappedServer := grpcweb.WrapServer(grpcServer /*, grpcweb.WithWebsockets(true)*/)
+	/*go func() {
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50551))
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		log.Println("listening on grpc")
+		//var opts []grpc.ServerOption
+		grpcServer.Serve(lis)
+	}()*/
 	addr := fmt.Sprintf(":%v", port)
 	//STATIC FILE SERVER
 	fsys := fs.FS(content)

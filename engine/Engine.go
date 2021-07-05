@@ -76,8 +76,32 @@ func (e *Engine) GetBillsByCustkey(ctx context.Context, rq *billing.GetBillReque
 	}
 	return response, nil
 }
-func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (*billing.BillResponce, error) {
-	return e.DataProvider.GetBillsByFormNo(ctx, rq)
+func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillRequest) (resp *billing.BillResponce, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v", string(debug.Stack())))
+		}
+	}()
+	response, err := e.DataProvider.GetBillsByFormNo(ctx, rq)
+	if err != nil {
+		return nil, err
+	}
+	if response != nil {
+		if len(response.Bills) > 0 {
+			bills := []*billing.Bill{}
+			for idx := range response.Bills {
+				bill := response.Bills[idx]
+				if bill != nil && bill.BilngDate != nil {
+					bills = append(bills, bill)
+				}
+			}
+			sort.SliceStable(bills, func(i, j int) bool {
+				return (*bills[j].BilngDate).AsTime().Before((*bills[i].BilngDate).AsTime())
+			})
+			response.Bills = bills
+		}
+	}
+	return response, nil
 }
 func (e *Engine) Login(ctx context.Context, rq *billing.LoginRequest) (resp *billing.LoginResponce, err error) {
 	defer func() {

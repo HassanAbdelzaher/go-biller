@@ -29,6 +29,7 @@ type Engine struct {
 	DataProvider   billing.BillingDataProviderServer
 	DataConsumer   billing.BillingDataCousumerServer
 	TariffProvider billing.BillingTariffProviderServer
+	billing.UnimplementedEngineServer
 }
 
 func NewEngine(tariffProvider billing.BillingTariffProviderServer,

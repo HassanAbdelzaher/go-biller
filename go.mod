@@ -3,9 +3,11 @@ module MaisrForAdvancedSystems/go-biller
 go 1.16
 
 require (
-	github.com/MaisrForAdvancedSystems/biller-charger v1.84.0
-	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.126.0
-	github.com/MaisrForAdvancedSystems/go-biller-proto v1.58.0
+	github.com/HassanAbdelzaher/lama v1.90.0
+	github.com/MaisrForAdvancedSystems/biller-charger v1.85.0
+	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.130.0
+	github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0
+	github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/protobuf v1.5.2
@@ -14,7 +16,8 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
-	google.golang.org/grpc v1.37.0
+	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
+	google.golang.org/grpc v1.39.0
 	google.golang.org/protobuf v1.26.0
 	nhooyr.io/websocket v1.8.7 // indirect
 )

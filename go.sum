@@ -42,10 +42,10 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/HassanAbdelzaher/lama v1.90.0 h1:iSAXy5JOjDitfvX6M4n52j6mk81NofY+jKdIlht2lHM=
 github.com/HassanAbdelzaher/lama v1.90.0/go.mod h1:nGXUoBfJn+aIt0m2XWCcSq5IPpWBMGhSy/DLJEbDoIM=
-github.com/MaisrForAdvancedSystems/biller-charger v1.85.0 h1:8hDGNjYD4woBogxoc89IkjJMdd2ESq5y2r6PJe3Y3w0=
-github.com/MaisrForAdvancedSystems/biller-charger v1.85.0/go.mod h1:uaN/iCQOPbBSjB/pQpsYd6BTAmmdagODqrBSG/wtI40=
-github.com/MaisrForAdvancedSystems/biller-mas-provider v1.130.0 h1:vStXwAwy3lmuL/jLJBj/pku+c5FcTMmsBTwmUXpt6js=
-github.com/MaisrForAdvancedSystems/biller-mas-provider v1.130.0/go.mod h1:+WfP/BVlBe2s247SISqNEn2aHgot/ZVl1xdXRLjNGFQ=
+github.com/MaisrForAdvancedSystems/biller-charger v1.86.0 h1:4ivMk9ZTRs/e7sFnJJQzkCwcABZwVT+DkINouIEXfOs=
+github.com/MaisrForAdvancedSystems/biller-charger v1.86.0/go.mod h1:uaN/iCQOPbBSjB/pQpsYd6BTAmmdagODqrBSG/wtI40=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0 h1:cCUKgSISShBN4JLI0wpAw6snU1BFxZD/QMSRDV62LI8=
+github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0/go.mod h1:+WfP/BVlBe2s247SISqNEn2aHgot/ZVl1xdXRLjNGFQ=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0 h1:rhE7h8w7ZQmhOm6pfs1KBM+1kLhetK0LUwCsP05b6gY=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0 h1:c+YBUR6g2/Q7FsXAWCnIuCQQHmfTF3ld6ciaSgKDIrs=

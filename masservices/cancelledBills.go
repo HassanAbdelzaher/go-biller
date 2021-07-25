@@ -434,20 +434,36 @@ func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRe
 	}
 	var lucancelledBillsAction irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	DataJ := &pbMessages.CancelledBillRequestResponse{}
+	REQUESTBY := ""
+	if cancelledreqData[0].REQUEST_BY != nil {
+		REQUESTBY = *cancelledreqData[0].REQUEST_BY
+	}
+	STATUS := ""
+	if cancelledreqData[0].STATUS != nil {
+		STATUS = *cancelledreqData[0].STATUS
+	}
+	SURNAME := ""
+	if cancelledreqData[0].SURNAME != nil {
+		SURNAME = *cancelledreqData[0].SURNAME
+	}
+	COMMENT := ""
+	if cancelledreqData[0].COMMENT != nil {
+		COMMENT = *cancelledreqData[0].COMMENT
+	}
 	DataJ.Content = &pbdbMessages.CANCELLED_REQUEST{
 		STATION_NO:   tools.StringToInt32(&cancelledreqData[0].STATION_NO),
 		FORM_NO:      &cancelledreqData[0].FORM_NO,
 		CUSTKEY:      &cancelledreqData[0].CUSTKEY,
 		DOCUMENT_NO:  &cancelledreqData[0].DOCUMENT_NO,
-		REQUEST_BY:   cancelledreqData[0].REQUEST_BY,
+		REQUEST_BY:   &REQUESTBY,
 		REQUEST_DATE: create_timestamp(cancelledreqData[0].REQUEST_DATE),
 		STAMP_DATE:   create_timestamp(cancelledreqData[0].STAMP_DATE),
 		COUNTER:      cancelledreqData[0].COUNTER,
 		STATE:        cancelledreqData[0].STATE,
 		CLOSED:       cancelledreqData[0].CLOSED,
-		STATUS:       cancelledreqData[0].STATUS,
-		SURNAME:      cancelledreqData[0].SURNAME,
-		COMMENT:      cancelledreqData[0].COMMENT,
+		STATUS:       &STATUS,
+		SURNAME:      &SURNAME,
+		COMMENT:      &COMMENT,
 		Actions:      []*pbdbMessages.CANCELLED_BILL_ACTION{},
 		Bills:        []*pbdbMessages.CANCELLED_BILL{},
 	}
@@ -465,14 +481,22 @@ func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRe
 		if lucancelledBillsActionData[0].DESCRIPTION != nil {
 			desc = *lucancelledBillsActionData[0].DESCRIPTION
 		}
+		STAMP_USER := ""
+		if cancelledBillsActionDataUse.STAMP_USER != nil {
+			STAMP_USER = *cancelledBillsActionDataUse.STAMP_USER
+		}
+		COMMENT := ""
+		if cancelledBillsActionDataUse.COMMENT != nil {
+			COMMENT = *cancelledBillsActionDataUse.COMMENT
+		}
 		act := &pbdbMessages.CANCELLED_BILL_ACTION{
 			FORM_NO:     &cancelledBillsActionDataUse.FORM_NO,
 			ACTION_ID:   &cancelledBillsActionDataUse.ACTION_ID,
 			DOCUMENT_NO: &cancelledBillsActionDataUse.DOCUMENT_NO,
 			CUSTKEY:     &cancelledBillsActionDataUse.CUSTKEY,
 			STAMP_DATE:  create_timestamp(cancelledBillsActionDataUse.STAMP_DATE),
-			STAMP_USER:  cancelledBillsActionDataUse.STAMP_USER,
-			COMMENT:     cancelledBillsActionDataUse.COMMENT,
+			STAMP_USER:  &STAMP_USER,
+			COMMENT:     &COMMENT,
 			USER_ID:     cancelledBillsActionDataUse.USER_ID,
 			DESCRIPTION: &desc,
 		}
@@ -480,17 +504,33 @@ func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRe
 	}
 	for idx := range cancelledBillsData {
 		cancelledBillsDataUse := cancelledBillsData[idx]
+		DOCUMENTNO := ""
+		if cancelledBillsDataUse.DOCUMENT_NO != nil {
+			DOCUMENTNO = *cancelledBillsDataUse.DOCUMENT_NO
+		}
+		COMMENT := ""
+		if cancelledBillsDataUse.COMMENT != nil {
+			COMMENT = *cancelledBillsDataUse.COMMENT
+		}
+		CANCELLEDBY := ""
+		if cancelledBillsDataUse.CANCELLED_BY != nil {
+			CANCELLEDBY = *cancelledBillsDataUse.CANCELLED_BY
+		}
+		SURNAME := ""
+		if cancelledBillsDataUse.SURNAME != nil {
+			SURNAME = *cancelledBillsDataUse.SURNAME
+		}
 		bill := &pbdbMessages.CANCELLED_BILL{
 			FORM_NO:        &cancelledBillsDataUse.FORM_NO,
-			DOCUMENT_NO:    cancelledBillsDataUse.DOCUMENT_NO,
+			DOCUMENT_NO:    &DOCUMENTNO,
 			CUSTKEY:        &cancelledBillsDataUse.CUSTKEY,
-			COMMENT:        cancelledBillsDataUse.COMMENT,
+			COMMENT:        &COMMENT,
 			PAYMENT_NO:     &cancelledBillsDataUse.PAYMENT_NO,
 			CL_BLNCE:       cancelledBillsDataUse.CL_BLNCE,
-			CANCELLED_BY:   cancelledBillsDataUse.CANCELLED_BY,
+			CANCELLED_BY:   &CANCELLEDBY,
 			CANCELLED_DATE: create_timestamp(cancelledBillsDataUse.BILNG_DATE),
 			STATION_NO:     cancelledBillsDataUse.STATION_NO,
-			SURNAME:        cancelledBillsDataUse.SURNAME,
+			SURNAME:        &SURNAME,
 			BILNG_DATE:     create_timestamp(cancelledBillsDataUse.BILNG_DATE),
 		}
 		DataJ.Content.Bills = append(DataJ.Content.Bills, bill)
@@ -621,8 +661,24 @@ func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillAct
 	if lucancelledBillsActionData[0].CLOSED != nil && *lucancelledBillsActionData[0].CLOSED {
 		cancelledreqData[0].CLOSED = lucancelledBillsActionData[0].CLOSED
 	}
-	var cancelBillactionr irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	err = cancelBillactionr.Upsert(&dbmodels.CANCELLED_BILLS_ACTION{
+	dbr, err := conn.Begin()
+	if err != nil {
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+	}
+	defer dbr.Rollback()
+	//defer dbr.Close()
+	// var cancelBillactionr irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	// err = cancelBillactionr.Upsert(&dbmodels.CANCELLED_BILLS_ACTION{
+	// 	ACTION_ID:   lucancelledBillsActionData[0].ID,
+	// 	DOCUMENT_NO: cancelledreqData[0].DOCUMENT_NO,
+	// 	CUSTKEY:     cancelledreqData[0].CUSTKEY,
+	// 	STAMP_DATE:  tools.ToTimePrt(time.Now()),
+	// 	STAMP_USER:  user.USER_NAME,
+	// 	USER_ID:     &user.ID,
+	// 	COMMENT:     in.Comment,
+	// 	FORM_NO:     cancelledreqData[0].FORM_NO,
+	// })
+	err = dbr.Add(&dbmodels.CANCELLED_BILLS_ACTION{
 		ACTION_ID:   lucancelledBillsActionData[0].ID,
 		DOCUMENT_NO: cancelledreqData[0].DOCUMENT_NO,
 		CUSTKEY:     cancelledreqData[0].CUSTKEY,
@@ -632,6 +688,14 @@ func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillAct
 		COMMENT:     in.Comment,
 		FORM_NO:     cancelledreqData[0].FORM_NO,
 	})
+	if err != nil {
+		return nil, err
+	}
+	err = dbr.Save(cancelledreqData[0])
+	if err != nil {
+		return nil, err
+	}
+	err = dbr.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -830,7 +894,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
 	}
 	defer dbr.Rollback()
-	defer dbr.Close()
+	//defer dbr.Close()
 	ReqFormNo := int64(0)
 	if in.Request.FORM_NO != nil {
 		ReqFormNo = *in.Request.FORM_NO

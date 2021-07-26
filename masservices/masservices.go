@@ -1,14 +1,12 @@
-package main
+package masservices
 
 import (
 	"MaisrForAdvancedSystems/go-biller/middlewares"
 	"MaisrForAdvancedSystems/go-biller/tools"
 	"context"
-	"embed"
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"reflect"
 	"strings"
@@ -34,8 +32,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-//go:embed public/*
-var content embed.FS
+// //go:embed public/*
+// var content embed.FS
 
 // BARCODE_LENGTH
 const BARCODE_LENGTH = int32(0)
@@ -110,7 +108,7 @@ func create_time(t *timestamppb.Timestamp) *time.Time {
 	ti := t.AsTime()
 	return &ti
 }
-func main() {
+func Masservicesmain() {
 	port := 25567
 	flag.Parse()
 	opts := []grpc.ServerOption{
@@ -122,11 +120,11 @@ func main() {
 	cancelled.RegisterCollectionServer(grpcServer, &serverCollection{})
 	wrappedServer := grpcweb.WrapServer(grpcServer /*, grpcweb.WithWebsockets(true)*/)
 	addr := fmt.Sprintf(":%v", port)
-	//STATIC FILE SERVER
-	fsys := fs.FS(content)
-	contentStatic, _ := fs.Sub(fsys, "public")
-	staticFileServer := http.FileServer(http.FS(contentStatic))
-	//staticFileServer := http.FileServer(http.Dir("./public"))
+	////STATIC FILE SERVER
+	//fsys := fs.FS(content)
+	//contentStatic, _ := fs.Sub(fsys, "public")
+	//staticFileServer := http.FileServer(http.FS(contentStatic))
+	staticFileServer := http.FileServer(http.Dir("./public"))
 	httpSrv := &http.Server{
 		// These interfere with websocket streams, disable for now
 		ReadTimeout:       50 * time.Second,

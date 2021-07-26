@@ -1,4 +1,4 @@
-package main
+package masservices
 
 import (
 	"MaisrForAdvancedSystems/go-biller/tools"
@@ -793,7 +793,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		log.Println(err)
 		return nil, sendError(codes.Aborted, err.Error(), err.Error(), nil)
 	} else {
-		conn.Debug = true
+		//conn.Debug = true
 		log.Println("connected")
 	}
 	user, err := getUser(&username, conn)
@@ -862,6 +862,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		}
 	}
 
+	log.Println("Done .... 1")
 	var handbill irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 
 	for idxx := range in.Request.Bills {
@@ -881,6 +882,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 			return nil, errors.New("رقم القاتورة غير موجود  " + *reqBill.PAYMENT_NO)
 		}
 	}
+	log.Println("Done .... 2")
 	handcstData, err := handbill.GetAllByCustkey(*in.Request.CUSTKEY)
 	if err != nil {
 		return nil, err
@@ -926,6 +928,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		SURNAME:      in.Request.SURNAME,
 		STAMP_DATE:   create_time(in.Request.STAMP_DATE),
 	}
+	log.Println("Done .... 3")
 	if in.Request.FORM_NO == nil && *in.Request.FORM_NO == 0 {
 		nextFormNo, err := cancelBillReq.GetMax("FORM_NO")
 		if err != nil {
@@ -942,6 +945,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		if err != nil {
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
 		}
+		log.Println("Done .... 4", nextFormNo)
 	} else {
 		prevStms, err := cancelBillReq.GetByBillsFormNo(reqsave.FORM_NO)
 		if err != nil {

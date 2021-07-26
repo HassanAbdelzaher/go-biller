@@ -2,6 +2,7 @@ package main
 
 import (
 	"MaisrForAdvancedSystems/go-biller/engine"
+	"MaisrForAdvancedSystems/go-biller/masservices"
 	"MaisrForAdvancedSystems/go-biller/middlewares"
 	"embed"
 	"flag"
@@ -64,7 +65,7 @@ func main() {
 	//STATIC FILE SERVER
 	fsys := fs.FS(content)
 	contentStatic, _ := fs.Sub(fsys, "public")
-	staticFileServer:=http.FileServer(http.FS(contentStatic))
+	staticFileServer := http.FileServer(http.FS(contentStatic))
 	//staticFileServer := http.FileServer(http.Dir("./public"))
 	httpSrv := &http.Server{
 		// These interfere with websocket streams, disable for now
@@ -81,7 +82,8 @@ func main() {
 		),
 	}
 	log.Printf("starting service :%v", engine.VERSION)
-	httpSrv.ListenAndServe()
+	go httpSrv.ListenAndServe()
+	masservices.Masservicesmain()
 }
 
 func setupResponse(w http.ResponseWriter) {
@@ -115,5 +117,3 @@ func grpcTrafficSplitter(fallback http.Handler, grpcHandler http.Handler) http.H
 		logrus.Info("Done:" + r.URL.String())
 	})
 }
-
-

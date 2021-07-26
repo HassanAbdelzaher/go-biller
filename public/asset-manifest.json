@@ -1,0 +1,28 @@
+{
+  "files": {
+    "main.css": "/static/css/main.aafcd102.chunk.css",
+    "main.js": "/static/js/main.0fe22199.chunk.js",
+    "main.js.map": "/static/js/main.0fe22199.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.a06e69b5.js",
+    "runtime-main.js.map": "/static/js/runtime-main.a06e69b5.js.map",
+    "static/css/2.8e016076.chunk.css": "/static/css/2.8e016076.chunk.css",
+    "static/js/2.35c01351.chunk.js": "/static/js/2.35c01351.chunk.js",
+    "static/js/2.35c01351.chunk.js.map": "/static/js/2.35c01351.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/2.8e016076.chunk.css.map": "/static/css/2.8e016076.chunk.css.map",
+    "static/css/main.aafcd102.chunk.css.map": "/static/css/main.aafcd102.chunk.css.map",
+    "static/js/2.35c01351.chunk.js.LICENSE.txt": "/static/js/2.35c01351.chunk.js.LICENSE.txt",
+    "static/media/DinNextBold.0993c0cf.woff": "/static/media/DinNextBold.0993c0cf.woff",
+    "static/media/DinNextMedium.95ac55ee.woff": "/static/media/DinNextMedium.95ac55ee.woff",
+    "static/media/DinNextRegular.05065527.woff": "/static/media/DinNextRegular.05065527.woff",
+    "static/media/primeicons.css": "/static/media/primeicons.e61f3495.woff",
+    "static/media/user.c917fc27.svg": "/static/media/user.c917fc27.svg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.a06e69b5.js",
+    "static/css/2.8e016076.chunk.css",
+    "static/js/2.35c01351.chunk.js",
+    "static/css/main.aafcd102.chunk.css",
+    "static/js/main.0fe22199.chunk.js"
+  ]
+}

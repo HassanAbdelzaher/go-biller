@@ -1,0 +1,230 @@
+{
+  "Setting": {
+    "BilingDate": {"seconds": 950014449},
+    "CycleLength": 1,
+    "IgnoreTimeEffect": false
+  },
+  "Ctgs": [{
+    "CType":"00/01",
+    "OP_ESTIM_CONS":20,
+    "NOOP_ESTIM_CONS": 40,
+    "Tariffs": [
+      {
+        "ServiceType": 0,
+        "TariffCode": "7-00",
+        "TransCode": "WATER_AMT",
+        "TaxPercentage": 14,
+        "DiscountPercentage": 0
+      },
+      {
+        "ServiceType": 1,
+        "TariffCode": "7-00",
+        "TransCode": "SEWER_AMT",
+        "TaxPercentage": 14,
+        "DiscountPercentage": 0
+      }
+    ]
+  },
+    {
+      "CType": "00/01",
+      "CTypeGroupid": "00",
+      "OP_ESTIM_CONS":20,
+      "NOOP_ESTIM_CONS": 40,
+      "Tariffs": [
+        {
+          "ServiceType": 0,
+          "TariffCode": "0-00",
+          "TransCode": "WATER_AMT",
+          "TaxPercentage": 14,
+          "DiscountPercentage": 0
+        },
+        {
+          "ServiceType": 1,
+          "TariffCode": "1-00",
+          "TransCode": "SEWER_AMT",
+          "TaxPercentage": 14,
+          "DiscountPercentage": 0
+        }
+      ]
+    }],
+  "Tariffs": [{
+    "TariffCode": "0-00",
+    "EffectDate": {"seconds": 950014449},
+    "Bands": [{
+      "From": 0,
+      "To": 10,
+      "Charge": 0.65,
+      "Constant": 0
+    },
+      {
+        "From": 10,
+        "To": 20,
+        "Charge": 1.6,
+        "Constant": 0
+      },
+      {
+        "From": 20,
+        "To": 30,
+        "Charge": 2.25,
+        "Constant": 0
+      },
+      {
+        "From": 30,
+        "To": 40,
+        "Charge": 2.75,
+        "Constant": 37.5
+      },
+      {
+        "From": 40,
+        "To": 9999999999,
+        "Charge": 3.15,
+        "Constant": 16
+      }]
+  },{
+    "TariffCode": "1-00",
+    "EffectDate": {"seconds": 950014449},
+    "Bands": [
+      {
+        "From": 0,
+        "To": 10,
+        "Charge": 0.4875,
+        "Constant": 0
+      },
+      {
+        "From": 10,
+        "To": 20,
+        "Charge": 1.2,
+        "Constant": 0
+      },
+      {
+        "From": 20,
+        "To": 30,
+        "Charge": 1.6875,
+        "Constant": 0
+      },
+      {
+        "From": 30,
+        "To": 40,
+        "Charge": 2.0625,
+        "Constant": 28.125
+      },
+      {
+        "From": 40,
+        "To": 9999999999,
+        "Charge": 2.3625,
+        "Constant": 12
+      }]},{
+        "TariffCode": "7-00",
+      "EffectDate": {"seconds": 950014449},
+      "Bands": [{
+        "From": 0,
+        "To": 9999999999,
+        "Charge": 4.60,
+        "Constant": 0
+      }]
+      }],
+  "RegularCharges": [{
+    "TransCode": "BASIC_AMT",
+    "EffectDate": {"seconds": 950014449},
+    "Title": "ESTIDAMA",
+    "IsChargable": true,
+    "ServiceType": 0,
+    "ChargeCalcPeriod": 1,
+    "ChargeInterval": 1,
+    "ChargeMonthlyDay": 1,
+    "ChargeType": 1,
+    "FixedCharge": 12,
+    "FixedChargeDiscount": 0,
+    "MinCharge": 0,
+    "VatPercentage": 14,
+    "Bypass": false,
+    "PerUnit": true,
+    "CTypeCalcBase": 2,
+    "RelationEnableEntity": {
+      "Code": "01",
+      "EntityType": 1,
+      "MappedValues": [{
+        "LuKey": "00/01",
+        "Value": true
+      },
+        {
+          "LuKey": "00/02",
+          "Value": true
+        }]
+    },
+    "RelationChargeEntity": {
+      "Code": "01",
+      "EntityType": 1,
+      "MappedValues": [{
+        "LuKey": "00/01",
+        "Value": 125
+      },
+        {
+          "LuKey": "00/02",
+          "Value": 250
+        }]
+    }
+  }],
+  "Cases": [{
+    "TotalExpectedValue": 1112.1,
+    "Customer": {
+      "Custkey": "100036990",
+      "CustType": 1,
+      "IsCompany": false,
+      "InfoFlag1": "1",
+      "InfoFlag2": "2",
+      "Billgroup": "1",
+      "Property": {
+        "PropRef": "123-321",
+        "InfoFlag1": "p1",
+        "InfoFlag2": "p2",
+        "IsVacated": false,
+        "Township": "cairo",
+        "Services": [
+          {
+            "ServiceType": 0,
+            "Connection": {
+              "CType": {"CType":"00/01"},
+              "CTYPE_GROUP": "00",
+              "NoUnits": 3,
+              "IsBulkMeter": false,
+              "ConnDiameter": 10,
+              "EstimCons": 123,
+              "ConnectionStatus": 1,
+              "Meter": {
+                "MeterType": "1",
+                "MeterRef": "2",
+                "Diameter": 12,
+                "ConverterFactor": 1,
+                "OpStatus": 0
+              },
+              "SubConnections":[]
+            }
+          }
+        ]
+      }
+    },
+    "Readings": [
+      {
+        "ServiceType": 0,
+        "Reading": {
+          "Consump": 234,
+          "CrReading": 234,
+          "PrReading": 0,
+          "PrDate": {"seconds": 1604840049},
+          "CrDate": {"seconds": 1607432049}
+        }
+      },
+      {
+        "ServiceType": 1,
+        "Reading": {
+          "Consump": 234,
+          "CrReading": 234,
+          "PrReading": 0,
+          "PrDate": {"seconds": 1604840049},
+          "CrDate": {"seconds": 1607432049}
+        }
+      }
+    ]
+  }]
+}

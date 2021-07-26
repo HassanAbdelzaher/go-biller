@@ -3,7 +3,7 @@ FROM golang:1.16.5-alpine3.13 as builder
 
 RUN mkdir /app
 
-ADD .. /app
+ADD . /app
 
 WORKDIR /app
 

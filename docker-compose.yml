@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  db:
+    image: biller:latest
+    restart: always
+    environment:
+    ports:
+      - "25566:25566"
+volumes:
+  db_data: {}

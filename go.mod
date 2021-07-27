@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/HassanAbdelzaher/lama v1.90.0
-	github.com/MaisrForAdvancedSystems/biller-charger v1.86.0
+	github.com/MaisrForAdvancedSystems/biller-charger v1.90.0
 	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0
 	github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0
 	github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0

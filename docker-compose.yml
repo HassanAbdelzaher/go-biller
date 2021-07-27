@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  db:
+    image: biller:latest
+    restart: always
+    environment:
+      MAS_DB_CONNECTION: "server=host.docker.internal;database=giza;user id=sa;password=hcs@mas"
+      MAS_MAX_DB_CONNECTIONS: 100
+      MAS_IDLE_DB_CONNECTION:  10
+    ports:
+      - "25566:25566"

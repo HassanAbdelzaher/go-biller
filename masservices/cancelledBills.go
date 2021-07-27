@@ -4,14 +4,13 @@ import (
 	"MaisrForAdvancedSystems/go-biller/tools"
 	"context"
 	"errors"
+	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"time"
 
 	pbdbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/dbmessages"
 	pbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/messages"
-	"github.com/MaisrForAdvancedSystems/go-biller-proto/go/serverhostmessages"
 	"github.com/MaisrForAdvancedSystems/mas-db-models/dbmodels"
 	"github.com/MaisrForAdvancedSystems/mas-db-models/dbpool"
 	irespo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/interfaces"
@@ -20,7 +19,12 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func cancelledBillListPP(ctx *context.Context, in *pbMessages.CancelledBillListRequest, perfectreq *bool) (rsp *pbMessages.CancelledBillListResponse, err error) {
+func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRequest) (rsp *pbMessages.CancelledBillListResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
 		return nil, errors.New("can not parse username")
@@ -32,7 +36,7 @@ func cancelledBillListPP(ctx *context.Context, in *pbMessages.CancelledBillListR
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -89,10 +93,53 @@ func cancelledBillListPP(ctx *context.Context, in *pbMessages.CancelledBillListR
 		DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
 	}
 	log.Println("End cancelledBillList..")
-	*perfectreq = true
 	return DataJ, nil
 }
-func getCustomerPaymentsPP(ctx *context.Context, in *pbMessages.GetCustomerPaymentsRequest, perfectreq *bool) (rsp *pbMessages.GetCustomerPaymentsResponse, err error) {
+func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *pbMessages.GetPaymentResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	user, err := getUser(&username, conn)
+	if err != nil {
+		return nil, err
+	}
+	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var ctgConTypeGr irespo.ICtgConsumptionTypeGroupsRepository = &respo.CtgConsumptionTypeGroupsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	ctgData, err := ctgConTypeGr.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user.USER_NAME, ctgData, conn)
+	if err != nil {
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	}
+	DataJ := &pbMessages.GetPaymentResponse{}
+	DataJ.Item = usj
+	return DataJ, nil
+}
+func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymentsRequest) (rsp *pbMessages.GetCustomerPaymentsResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
 		return nil, errors.New("can not parse username")
@@ -107,7 +154,7 @@ func getCustomerPaymentsPP(ctx *context.Context, in *pbMessages.GetCustomerPayme
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -141,252 +188,23 @@ func getCustomerPaymentsPP(ctx *context.Context, in *pbMessages.GetCustomerPayme
 	DataJ := &pbMessages.GetCustomerPaymentsResponse{}
 	for idx := range handData {
 		handDataUse := handData[idx]
-		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user.USER_NAME, ctgData)
+		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user.USER_NAME, ctgData, conn)
 		if err != nil {
-			return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+			return nil, sendError(codes.Internal, err.Error(), err.Error())
 		}
 		DataJ.Items = append(DataJ.Items, usj)
 	}
 	log.Println("end ..")
-	*perfectreq = true
 	return DataJ, nil
 }
-func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, userName *string, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
-	if forQuery == nil {
-		forQuery = tools.ToBoolPointer(false)
-	}
-	if skipBracodTrim == nil {
-		skipBracodTrim = tools.ToBoolPointer(false)
-	}
-	if paymentNo == nil && custKey == nil {
-		return nil, errors.New("برجاء تحديد كود الفاتورة أو رقم الحساب")
-	}
-	if paymentNo != nil {
-		paymentNo = tools.ToStringPointer(strings.TrimSpace(*paymentNo))
-		if !*skipBracodTrim {
-			if int32(len(*paymentNo)) > BARCODE_LENGTH && BARCODE_LENGTH > 1 {
-				paymentNo = tools.ToStringPointer((*paymentNo)[0:BARCODE_LENGTH])
-			}
+func cancelledBillRequestP(ctx *context.Context, in *pbMessages.CancelledBillRequestRequest) (rsp *pbMessages.CancelledBillRequestResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
 		}
-	}
-	pay, err := (*hand).GetPayment(paymentNo, stationNo, custKey, cycle_id)
-	if err != nil {
-		return nil, err
-	}
-	if len(pay) == 0 {
-		return nil, errors.New("لا يوجد فاتورة بهذا الرقم")
-	}
-	if (custKey != nil && *custKey != "") && len(pay) > 1 {
-		sort.SliceStable(pay, func(i, j int) bool {
-			if pay[i].BILNG_DATE == nil && pay[j].BILNG_DATE == nil {
-				return false
-			} else if pay[i].BILNG_DATE == nil {
-				return false
-			} else if pay[j].BILNG_DATE == nil {
-				return true
-			}
-			return (*pay[i].BILNG_DATE).After(*pay[j].BILNG_DATE)
-		})
-	}
-	if len(pay) > 1 {
-		if pay[0].BILNG_DATE != nil && pay[1].BILNG_DATE != nil && (*pay[0].BILNG_DATE).Equal(*pay[1].BILNG_DATE) {
-			return nil, errors.New("يوجد اكثر من فاتورة بهذا الرقم")
-		}
-	}
-	var cancelreq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
-	cancelData, err := cancelreq.GetByCustKey(*custKey)
-	if err != nil {
-		return nil, err
-	}
-	for idx := range cancelData {
-		cancelDataUse := cancelData[idx]
-		cancelBillData, err := cancelreq.GetByFormNoPaymentNo(cancelDataUse.FORM_NO, *pay[0].Payment_no)
-		if err != nil {
-			return nil, err
-		}
-		if len(cancelBillData) > 0 {
-			//return nil, errors.New("يوجد طلب مفتوح على الفاتورة قيد المراجعة")
-			return nil, errors.New("Exist Opened Issue")
-		}
-	}
-	var customerbook irespo.ICustomerBooksRepository = &respo.CustomerBooksRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
-	bookData, err := customerbook.GetByBillGroupCode(*pay[0].BILLGROUP, *pay[0].BOOK_NO_C)
-	if err != nil {
-		return nil, err
-	}
-	bookDesc := ""
-	if len(bookData) > 0 {
-		if bookData[0].DESCRIBE != nil {
-			bookDesc = *bookData[0].DESCRIBE
-		}
-	}
-	if pay[0].BOOK_NO_C != nil {
-		bookDesc = *pay[0].BOOK_NO_C + " " + bookDesc
-	}
-
-	var colAmt *float64
-	calType := ""
-	readType := int32(0)
-	activ := ""
-	usernamee := ""
-	var installDate *time.Time
-	if pay[0].COLLECTION_AMT != nil && *pay[0].COLLECTION_AMT == 0 {
-		if pay[0].CUR_PAYMNTS != nil {
-			colAmt = pay[0].CUR_PAYMNTS
-		}
-	} else {
-		colAmt = pay[0].COLLECTION_AMT
-	}
-	if pay[0].CALC_TYPE != nil {
-		calType = strings.TrimSpace(*pay[0].CALC_TYPE)
-	}
-	if pay[0].READ_TYPE != nil {
-		readType = *pay[0].READ_TYPE
-	}
-	if userName != nil {
-		usernamee = *userName
-	}
-	if pay[0].INSTALMENT_DATE != nil && pay[0].BILNG_DATE != nil && ((*pay[0].INSTALMENT_DATE).After(*pay[0].BILNG_DATE)) {
-		installDate = pay[0].BILNG_DATE
-	} else {
-		installDate = pay[0].INSTALMENT_DATE
-	}
-	if pay[0].Ctypegrp_id != nil {
-		for idx := range ctg {
-			ctgUse := ctg[idx]
-			if ctgUse.CTYPEGRP_ID == *pay[0].Ctypegrp_id {
-				activ = *ctgUse.DESCRIPTION
-				break
-			}
-		}
-	}
-	timeN := time.Now()
-	collectedB4 := float64(0)
-	reminderValue := float64(0)
-	var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
-	recepData, err := recep.GetByCustKeyCycleIDCancelled(*pay[0].CUSTKEY, pay[0].CYCLE_ID, false)
-	if err != nil {
-		return nil, err
-	}
-	for idx := range recepData {
-		recepDataUse := recepData[idx]
-		collectedB4 += recepDataUse.AMOUNT
-	}
-	reminderValue = float64(0)
-	reminderValue = tools.RoundTo(pay[0].Cl_blnce-collectedB4, 3)
-	ctypgrid := ""
-	if pay[0].Ctypegrp_id != nil {
-		ctypgrid = *pay[0].Ctypegrp_id
-	}
-	DataJ := &serverhostmessages.CollectionDestributionItem{
-		PAYMENT_NO:            pay[0].Payment_no,
-		CUSTKEY:               pay[0].CUSTKEY,
-		DELIVERY_ST:           pay[0].Delivery_st,
-		BILLGROUP:             pay[0].BILLGROUP,
-		BILNG_DATE:            create_timestamp(pay[0].BILNG_DATE),
-		CL_BLNCE:              tools.ToFloatPointer(pay[0].Cl_blnce),
-		ISSUED_AMOUNT:         tools.ToFloatPointer(pay[0].Cl_blnce),
-		SURNAME:               pay[0].Tent_name,
-		BOOK_NO:               &bookDesc,
-		WALK_NO:               pay[0].WALK_NO_C,
-		SEQ_NO:                tools.Int32PtrToInt64Ptr(pay[0].SEQ_NO_C),
-		EMP_ID:                pay[0].EMPID_C,
-		ISSUED_COUNT:          tools.Int32ToInt32Ptr(1),
-		WATER_AMT:             pay[0].WATER_AMT,
-		SEWER_AMT:             pay[0].SEWER_AMT,
-		BASIC_AMT:             pay[0].BASIC_AMT,
-		TAX_AMT:               pay[0].TAX_AMT,
-		ROUND_AMT:             pay[0].ROUND_AMT,
-		AGREEM_AMT:            pay[0].AGREEM_AMT,
-		CONN_INSTALLS_AMT:     pay[0].CONN_INSTALLS_AMT,
-		CRDT_AMT:              pay[0].CRDT_AMT,
-		DBT_AMT:               pay[0].DBT_AMT,
-		INSTALLS_AMT:          pay[0].INSTALLS_AMT,
-		METER_INSTALLS_AMT:    pay[0].METER_INSTALLS_AMT,
-		OTHER_AMT:             pay[0].OTHER_AMT,
-		OTHER_AMT1:            pay[0].OTHER_AMT1,
-		OTHER_AMT2:            pay[0].OTHER_AMT2,
-		OTHER_AMT3:            pay[0].OTHER_AMT3,
-		OTHER_AMT4:            pay[0].OTHER_AMT4,
-		OTHER_AMT5:            pay[0].OTHER_AMT5,
-		TAKAFUL_AMT:           pay[0].TAKAFUL_AMT,
-		TANZEEM_AMT:           pay[0].TANZEEM_AMT,
-		OP_BLNCE:              pay[0].OP_BLNCE,
-		INSTALMENT:            pay[0].INSTALMENT,
-		COMPUTER_AMT:          pay[0].COMPUTER_AMT,
-		CONN_AMT:              pay[0].CONN_AMT,
-		CONTRACT_AMT:          pay[0].CONTRACT_AMT,
-		GOV_AMT:               pay[0].GOV_AMT,
-		METER_AMT:             pay[0].METER_AMT,
-		METER_MAN_AMT:         pay[0].METER_MAN_AMT,
-		UNI_AMT:               pay[0].UNI_AMT,
-		CLEAN_AMT:             pay[0].CLEAN_AMT,
-		CUR_CHARGES:           pay[0].CUR_CHARGES,
-		CUR_PAYMNTS:           colAmt,
-		NO_UNITS:              pay[0].No_units,
-		CALC_TYPE:             &calType,
-		CR_REAING:             pay[0].S_CR_READING, //القراءة الحالية في الطباعة ليس لعا علاقة بقراءات العداد الاخيرة
-		PR_READING:            pay[0].S_PR_READING,
-		CONSUMP:               pay[0].S_CONSUMP,
-		ADDRESS:               pay[0].Ua_adress1,
-		OLD_KEY:               pay[0].OLD_KEY,
-		READ_TYPE:             &readType,
-		PR_READ1:              tools.FloatPtrToInt32Ptr(pay[0].Pr_read1), //القراءة السابقة في حال متعذر والمغلق والمعطل
-		METER_REF:             pay[0].Meter_ref,
-		ACTIVITY:              &activ,
-		INSTALMENT_DATE:       create_timestamp(installDate),
-		CYCLE_ID:              pay[0].CYCLE_ID,
-		DUE_AMOUNT:            pay[0].DUE_AMOUNT,
-		BILL_AMOUNT:           pay[0].BILL_AMOUNT,
-		BILL_ADJ_AMOUNT:       pay[0].BILL_ADJ_AMOUNT,
-		COLLECTION_AMT:        colAmt,
-		CTG:                   &ctypgrid,
-		STAMP_DATE:            create_timestamp(&timeN),
-		USER:                  &usernamee,
-		TotalAmountCollected:  &collectedB4,
-		REMINDER_VALUE:        &reminderValue,
-		CTYPES_DTL:            []*serverhostmessages.CTYPE_DTL{},
-		IS_CTYPES:             tools.ToBoolPointer(false),
-		TotalCountCollected:   tools.ToFloatPointer(0),
-		IS_COLLECTED_BY_OWNER: tools.ToBoolPointer(false),
-		IS_COLLECTED_BY_OTHER: tools.ToBoolPointer(false),
-	}
-	var ctydetail irespo.IBillCtypesRepository = &respo.BillCtypesRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
-	ctydetailData, err := ctydetail.GetSumsByCustKeyCycleID(*pay[0].CUSTKEY, *pay[0].CYCLE_ID)
-	if len(ctydetailData) > 1 {
-		for idx := range ctydetailData {
-			ctydetailDataUse := ctydetailData[idx]
-			dec := ""
-			if ctydetailDataUse.DESCRIPTION == nil {
-				dec = *ctydetailDataUse.DESCRIPTION
-			}
-			for idx := range ctg {
-				ctgUse := ctg[idx]
-				if ctgUse.CTYPEGRP_ID == dec {
-					ctydetailDataUse.DESCRIPTION = ctgUse.DESCRIPTION
-					break
-				}
-			}
-			totalV := tools.RoundTo(*ctydetailDataUse.OTHER_AMT+*ctydetailDataUse.WATER_AMT+*ctydetailDataUse.SEWER_AMT, 2)
-			ctcyJ := serverhostmessages.CTYPE_DTL{
-				DESCRIPTION:  ctydetailDataUse.DESCRIPTION,
-				OTHER_AMT:    ctydetailDataUse.OTHER_AMT,
-				WATER_AMT:    ctydetailDataUse.WATER_AMT,
-				SEWER_AMT:    ctydetailDataUse.SEWER_AMT,
-				TOTAL_AMOUNT: &totalV,
-			}
-			DataJ.CTYPES_DTL = append(DataJ.CTYPES_DTL, &ctcyJ)
-		}
-		mokhtalat := "مختلط"
-		DataJ.ACTIVITY = &mokhtalat
-		DataJ.IS_CTYPES = tools.ToBoolPointer(true)
-	}
-	log.Println("End Payment ..", *paymentNo)
-	return DataJ, nil
-}
-func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRequestRequest, perfectreq *bool) (rsp *pbMessages.CancelledBillRequestResponse, err error) {
+	}()
 	if in.FormNo == nil {
-		return nil, sendError(codes.Internal, "قم بادخال رقم الطلب", err.Error(), nil)
+		return nil, sendError(codes.Internal, "قم بادخال رقم الطلب", err.Error())
 	}
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
@@ -398,7 +216,7 @@ func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRe
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -536,10 +354,14 @@ func cancelledBillRequestPP(ctx *context.Context, in *pbMessages.CancelledBillRe
 		DataJ.Content.Bills = append(DataJ.Content.Bills, bill)
 	}
 	log.Println("End CancelledBillRequest..")
-	*perfectreq = true
 	return DataJ, nil
 }
-func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillActionRequest, perfectreq *bool) (rsp *pbMessages.CancelledBillActionResponse, err error) {
+func cancelledBillActionP(ctx *context.Context, in *pbMessages.CancelledBillActionRequest) (rsp *pbMessages.CancelledBillActionResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	if in.FormNo == nil {
 		return nil, errors.New("رقم الطلب غير صحيح")
 	}
@@ -556,7 +378,7 @@ func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillAct
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -663,7 +485,7 @@ func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillAct
 	}
 	dbr, err := conn.Begin()
 	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 	}
 	defer dbr.Rollback()
 	//defer dbr.Close()
@@ -701,10 +523,14 @@ func cancelledBillActionPP(ctx *context.Context, in *pbMessages.CancelledBillAct
 	}
 	DataJ := &pbMessages.CancelledBillActionResponse{}
 	DataJ.Message = tools.ToStringPointer("Done")
-	*perfectreq = true
 	return DataJ, nil
 }
-func billActionsPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool) (rsp *pbMessages.BillActionsResponse, err error) {
+func billActionsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.BillActionsResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
 		return nil, errors.New("can not parse username")
@@ -716,7 +542,7 @@ func billActionsPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool)
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -741,10 +567,14 @@ func billActionsPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool)
 		})
 	}
 	log.Println("End BillActions..")
-	*perfectreq = true
 	return DataJ, nil
 }
-func billStatesPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool) (rsp *pbMessages.BillStatesResponse, err error) {
+func billStatesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.BillStatesResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
 		return nil, errors.New("can not parse username")
@@ -756,7 +586,7 @@ func billStatesPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool) 
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	} else {
 		conn.Debug = true
 		log.Println("connected")
@@ -776,10 +606,14 @@ func billStatesPP(ctx *context.Context, in *pbMessages.Empty, perfectreq *bool) 
 		})
 	}
 	log.Println("End BillStates..")
-	*perfectreq = true
 	return DataJ, nil
 }
-func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRequest, perfectreq *bool) (rsp *pbMessages.SaveBillCancelRequestResponse, err error) {
+func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRequest) (rsp *pbMessages.SaveBillCancelRequestResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
 		return nil, errors.New("can not parse username")
@@ -791,14 +625,14 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
-		return nil, sendError(codes.Aborted, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Aborted, err.Error(), err.Error())
 	} else {
 		//conn.Debug = true
 		log.Println("connected")
 	}
 	user, err := getUser(&username, conn)
 	if err != nil {
-		return nil, sendError(codes.Aborted, err.Error(), err.Error(), nil)
+		return nil, sendError(codes.Aborted, err.Error(), err.Error())
 	}
 	if user.CANCEL_BILL == nil || !*user.CANCEL_BILL {
 		return nil, errors.New("المستخدم لا يمتلك الصلاحية الكافية")
@@ -888,12 +722,12 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		return nil, err
 	}
 	if len(handcstData) == 0 {
-		return nil, sendError(codes.InvalidArgument, "لا يوجد رقم حساب عميل مسجل", "لا يوجد رقم حساب عميل مسجل", perfectreq)
+		return nil, sendError(codes.InvalidArgument, "لا يوجد رقم حساب عميل مسجل", "لا يوجد رقم حساب عميل مسجل")
 	}
 	timeNow := time.Now()
 	dbr, err := conn.Begin()
 	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 	}
 	defer dbr.Rollback()
 	//defer dbr.Close()
@@ -928,14 +762,14 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		SURNAME:      in.Request.SURNAME,
 		STAMP_DATE:   create_time(in.Request.STAMP_DATE),
 	}
-	log.Println("Done .... 3")
-	if in.Request.FORM_NO == nil && *in.Request.FORM_NO == 0 {
+	log.Println("Done .... 3", *in.Request.FORM_NO)
+	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
 		nextFormNo, err := cancelBillReq.GetMax("FORM_NO")
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if nextFormNo == nil {
-			return nil, sendError(codes.InvalidArgument, "لم يتم احتساب رقم الطلب", "لم يتم احتساب رقم الطلب", perfectreq)
+			return nil, sendError(codes.InvalidArgument, "لم يتم احتساب رقم الطلب", "لم يتم احتساب رقم الطلب")
 		}
 		reqsave.STAMP_DATE = &timeNow
 		reqsave.FORM_NO = 1 + *nextFormNo
@@ -943,13 +777,13 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		reqsave.COUNTER = tools.Int32ToInt32Ptr(0)
 		err = dbr.Add(reqsave)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		log.Println("Done .... 4", nextFormNo)
 	} else {
 		prevStms, err := cancelBillReq.GetByBillsFormNo(reqsave.FORM_NO)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		for idxb := range prevStms {
 			prevStmsUse := prevStms[idxb]
@@ -964,7 +798,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 			if removeb {
 				err := dbr.Delete(prevStmsUse)
 				if err != nil {
-					return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+					return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 				}
 			}
 		}
@@ -989,16 +823,16 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 
 	actionsData, err := actionr.GetByFormNo(reqsave.FORM_NO)
 	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 	}
 	if len(actionsData) > 2 {
-		return nil, sendError(codes.AlreadyExists, "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب", "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب", perfectreq)
+		return nil, sendError(codes.AlreadyExists, "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب", "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب")
 	}
 	if reqsave.STATE == nil || *reqsave.STATE == 0 {
 		stateId := int32(0)
 		intiActData, err := intiActr.GetByStartUp(true)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(actionsData) == 0 {
 			if len(intiActData) != 0 {
@@ -1016,15 +850,15 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 				}
 				dbr.Add(cancelbillactionSave)
 				if err != nil {
-					return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+					return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 				}
 			} else {
-				return nil, sendError(codes.InvalidArgument, "برجاء تعريف الاجراء الابتدائي للعملية", "برجاء تعريف الاجراء الابتدائي للعملية", perfectreq)
+				return nil, sendError(codes.InvalidArgument, "برجاء تعريف الاجراء الابتدائي للعملية", "برجاء تعريف الاجراء الابتدائي للعملية")
 			}
 		} else {
 			stateIdData, err := intiActr.GetByID(actionsData[0].ACTION_ID)
 			if err != nil {
-				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 			}
 			if len(stateIdData) > 0 {
 				if stateIdData[0].CURRENT_STATE != nil {
@@ -1034,16 +868,16 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		}
 		stateData, err := satatesr.GetByID(stateId)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(stateData) == 0 {
-			return nil, sendError(codes.InvalidArgument, "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId), "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId), perfectreq)
+			return nil, sendError(codes.InvalidArgument, "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId), "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId))
 		}
 		reqsave.STATUS = stateData[0].DESCRIPTION
 		reqsave.STATE = &stateData[0].ID
 		err = dbr.Save(reqsave)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 	}
 	for idxb := range in.Request.Bills {
@@ -1054,28 +888,28 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		}
 		handData, err := handbill.GetByPaymentNoCustkey(payPAYMENT_NO, ReqCUSTKEY)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(handData) == 0 {
-			return nil, sendError(codes.InvalidArgument, "رقم القاتورة غير موجود  "+*pay.PAYMENT_NO, "رقم القاتورة غير موجود  "+*pay.PAYMENT_NO, perfectreq)
+			return nil, sendError(codes.InvalidArgument, "رقم القاتورة غير موجود  "+*pay.PAYMENT_NO, "رقم القاتورة غير موجود  "+*pay.PAYMENT_NO)
 		}
 		err = throwsIfStationNoInvalied(user, handData[0].STATION_NO, conn)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		// Check
 		bcycData, err := bcycr.GetByStationNoBillGroupBookCWalkCCycleID(*handData[0].STATION_NO, *handData[0].BILLGROUP, *handData[0].BOOK_NO_C, *handData[0].WALK_NO_C, *handData[0].CYCLE_ID)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(bcycData) > 0 {
 			if bcycData[0].ISCYCLE_COMPLETED_C != nil && *bcycData[0].ISCYCLE_COMPLETED_C == 1 {
-				return nil, sendError(codes.Unavailable, "دورة التحصيل مغلقة   "+*pay.PAYMENT_NO, "دورة التحصيل مغلقة   "+*pay.PAYMENT_NO, perfectreq)
+				return nil, sendError(codes.Unavailable, "دورة التحصيل مغلقة   "+*pay.PAYMENT_NO, "دورة التحصيل مغلقة   "+*pay.PAYMENT_NO)
 			}
 		}
 		cancelledBillsData, err := cancelBillReq.GetByDocNoCustKeyPaymentNo(*in.Request.DOCUMENT_NO, handData[0].CUSTKEY, *pay.PAYMENT_NO)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(cancelledBillsData) > 0 {
 			cancRow := cancelledBillsData[0]
@@ -1099,12 +933,12 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 			}
 			dbr.Add(billRow)
 			if err != nil {
-				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 			}
 		}
 		hrecData, err := handbill.GetByPaymentNoCustkey(*handData[0].Payment_no, handData[0].CUSTKEY)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 		if len(hrecData) > 0 {
 			hrec := hrecData[0]
@@ -1120,7 +954,7 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		} else {
 			archandData, err := archand.GetByPaymentNoCustkey(*handData[0].Payment_no, handData[0].CUSTKEY)
 			if err != nil {
-				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 			}
 			arc_hrec := archandData[0]
 			arc_hrec.IS_COLLECTION_ROW = tools.Int32ToInt32Ptr(0)
@@ -1134,16 +968,15 @@ func saveBillCancelRequestPP(ctx *context.Context, in *pbMessages.SaveBillCancel
 		}
 		err = tracr.AddStatmentAction(dbr, handData[0].Payment_no, &handData[0].CUSTKEY, tools.Int32ToInt32Ptr(int32(*handData[0].EMPID_C)), true)
 		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 	}
 	err = dbr.Commit()
 	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error(), perfectreq)
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 	}
 	DataJ := &pbMessages.SaveBillCancelRequestResponse{Message: tools.ToStringPointer("Done")}
 
 	log.Println("End SaveBillCancelRequest..")
-	*perfectreq = true
 	return DataJ, nil
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -93,7 +94,7 @@ func throwsIfStationNoInvalied(user *dbmodels.USERS, stationNo *int32, conn *lam
 	if user != nil && user.STATION_NO != nil && int32(*user.STATION_NO) == station {
 		return nil
 	}
-	return sendError(codes.InvalidArgument, "لا تمتلك صلاحية كافية لعمل الاجراء بالفرع", "لا تمتلك صلاحية كافية لعمل الاجراء بالفرع", tools.ToBoolPointer(false))
+	return sendError(codes.InvalidArgument, "لا تمتلك صلاحية كافية لعمل الاجراء بالفرع", "لا تمتلك صلاحية كافية لعمل الاجراء بالفرع")
 }
 func create_timestamp(t *time.Time) *timestamppb.Timestamp {
 	if t == nil {
@@ -175,10 +176,7 @@ func grpcTrafficSplitter(fallback http.Handler, grpcHandler http.Handler) http.H
 	})
 }
 
-func sendError(codeStatus codes.Code, ErrorMessage string, ErrorTitle string, perfectreq *bool) error {
-	if perfectreq != nil {
-		*perfectreq = true
-	}
+func sendError(codeStatus codes.Code, ErrorMessage string, ErrorTitle string) error {
 	st := status.New(codeStatus, ErrorMessage)
 	badRequest := &errdetails.BadRequest{}
 	violations := make([]*errdetails.BadRequest_FieldViolation, 0)
@@ -186,17 +184,6 @@ func sendError(codeStatus codes.Code, ErrorMessage string, ErrorTitle string, pe
 	(*badRequest).FieldViolations = append(violations, &violation)
 	det, _ := st.WithDetails(badRequest)
 	return det.Err()
-}
-
-func panicce(errorstr *string, perfectreq *bool) (rsp *string, err error) {
-	if !*perfectreq {
-		r := recover()
-		if r != nil {
-			*errorstr = "Panic : " + fmt.Sprintf("%v", r)
-			return nil, sendError(codes.InvalidArgument, fmt.Sprintf("%v", r), fmt.Sprintf("%v", r), perfectreq)
-		}
-	}
-	return nil, nil
 }
 
 func cleanString(inp *string, defult *string, toUpper *bool, toLower *bool) {
@@ -252,12 +239,29 @@ func filterFirst(in interface{}, fn filterf) interface{} {
 // Services
 // CancelledBillList implements
 func (s *serverCollection) CancelledBillList(ctx context.Context, in *pbMessages.CancelledBillListRequest) (rsp *pbMessages.CancelledBillListResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at CancelledBillList %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... CancelledBillList ....")
-	errorstring := ""
-	Data, err := cancelledBillListP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := cancelledBillListP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}
+
+// GetPayment implements
+func (s *serverCollection) GetPayment(ctx context.Context, in *pbMessages.GetPaymentRequest) (rsp *pbMessages.GetPaymentResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at GetPayment %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... GetPayment ....")
+	Data, err := getPaymentP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
@@ -265,12 +269,14 @@ func (s *serverCollection) CancelledBillList(ctx context.Context, in *pbMessages
 
 // GetCustomerPayments implements
 func (s *serverCollection) GetCustomerPayments(ctx context.Context, in *pbMessages.GetCustomerPaymentsRequest) (rsp *pbMessages.GetCustomerPaymentsResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at GetCustomerPayments %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... GetCustomerPayments ....")
-	errorstring := ""
-	Data, err := getCustomerPaymentsP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := getCustomerPaymentsP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
@@ -278,12 +284,14 @@ func (s *serverCollection) GetCustomerPayments(ctx context.Context, in *pbMessag
 
 // CancelledBillRequest implements
 func (s *serverCollection) CancelledBillRequest(ctx context.Context, in *pbMessages.CancelledBillRequestRequest) (rsp *pbMessages.CancelledBillRequestResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at CancelledBillRequest %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... CancelledBillRequest ....")
-	errorstring := ""
-	Data, err := cancelledBillRequestP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := cancelledBillRequestP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
@@ -291,25 +299,29 @@ func (s *serverCollection) CancelledBillRequest(ctx context.Context, in *pbMessa
 
 // CancelledBillAction implements
 func (s *serverCollection) CancelledBillAction(ctx context.Context, in *pbMessages.CancelledBillActionRequest) (rsp *pbMessages.CancelledBillActionResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at CancelledBillAction %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... CancelledBillAction ....")
-	errorstring := ""
-	Data, err := cancelledBillActionP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := cancelledBillActionP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
 }
 
-// CancelledBillAction implements
+// BillActions implements
 func (s *serverCollection) BillActions(ctx context.Context, in *pbMessages.Empty) (rsp *pbMessages.BillActionsResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at BillActions %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... BillActions ....")
-	errorstring := ""
-	Data, err := billActionsP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := billActionsP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
@@ -317,12 +329,14 @@ func (s *serverCollection) BillActions(ctx context.Context, in *pbMessages.Empty
 
 // BillStates implements
 func (s *serverCollection) BillStates(ctx context.Context, in *pbMessages.Empty) (rsp *pbMessages.BillStatesResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at BillStates %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... BillStates ....")
-	errorstring := ""
-	Data, err := billStatesP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := billStatesP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil
@@ -330,12 +344,14 @@ func (s *serverCollection) BillStates(ctx context.Context, in *pbMessages.Empty)
 
 // SaveBillCancelRequest implements
 func (s *serverCollection) SaveBillCancelRequest(ctx context.Context, in *pbMessages.SaveBillCancelRequestRequest) (rsp *pbMessages.SaveBillCancelRequestResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
 	log.Println(".... SaveBillCancelRequest ....")
-	errorstring := ""
-	Data, err := saveBillCancelRequestP(&errorstring, &ctx, in)
-	if errorstring != "" {
-		return Data, sendError(codes.InvalidArgument, err.Error(), err.Error(), nil)
-	} else if err != nil {
+	Data, err := saveBillCancelRequestP(&ctx, in)
+	if err != nil {
 		return Data, err
 	}
 	return Data, nil

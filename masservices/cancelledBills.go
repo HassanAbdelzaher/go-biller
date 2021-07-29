@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -53,13 +54,18 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		return nil, err
 	}
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsData []*dbmodels.CANCELLED_REQUEST
+	inclose := false
+	if in.IncludeClose != nil {
+		inclose = *in.IncludeClose
+	}
 	if in.State != nil && (station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0) {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO)
+		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO, inclose)
 	} else if in.State != nil {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatus(false, *in.State)
+		cancelledBillsData, err = cancelledBills.GetByClosedStatus(false, *in.State, inclose)
 	} else if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
-		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO)
+		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO, inclose)
 	} else {
 		cancelledBillsData, err = cancelledBills.GetByClosed(false)
 	}
@@ -72,7 +78,15 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	for idx := range cancelledBillsData {
 		usj := &pbdbMessages.CANCELLED_REQUEST{}
 		cancelledBillsUse := cancelledBillsData[idx]
-		//log.Println("IDX: ", idx, " CUSTKEY", cancelledBillsUse.CUSTKEY, "Comment ", cancelledBillsUse.COMMENT)
+		lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, in.State)
+		if err != nil {
+			return nil, err
+		}
+		if len(lastaction) > 0 {
+			usj.STAMP_DATE = create_timestamp(lastaction[0].STAMP_DATE)
+		} else {
+			usj.STAMP_DATE = create_timestamp(cancelledBillsUse.STAMP_DATE)
+		}
 		usj.CLOSED = cancelledBillsUse.CLOSED
 		if cancelledBillsUse.COMMENT == nil {
 			usj.COMMENT = &stringEmpty
@@ -84,7 +98,6 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		usj.FORM_NO = &cancelledBillsUse.FORM_NO
 		usj.REQUEST_BY = cancelledBillsUse.REQUEST_BY
 		usj.REQUEST_DATE = create_timestamp(cancelledBillsUse.REQUEST_DATE)
-		usj.STAMP_DATE = create_timestamp(cancelledBillsUse.STAMP_DATE)
 		usj.STATE = cancelledBillsUse.STATE
 		usj.STATION_NO = tools.StringToInt32(&cancelledBillsUse.STATION_NO)
 		usj.STATUS = cancelledBillsUse.STATUS
@@ -92,6 +105,16 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 
 		DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
 	}
+	sort.SliceStable(DataJ.CancelledBillList, func(i, j int) bool {
+		if DataJ.CancelledBillList[i].STAMP_DATE == nil && DataJ.CancelledBillList[j].STAMP_DATE == nil {
+			return false
+		} else if DataJ.CancelledBillList[i].STAMP_DATE == nil {
+			return false
+		} else if DataJ.CancelledBillList[j].STAMP_DATE == nil {
+			return true
+		}
+		return (*DataJ.CancelledBillList[i].STAMP_DATE).AsTime().After((*DataJ.CancelledBillList[j].STAMP_DATE).AsTime())
+	})
 	log.Println("End cancelledBillList..")
 	return DataJ, nil
 }
@@ -120,13 +143,17 @@ func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *p
 	if err != nil {
 		return nil, err
 	}
+	station, err := getStation(user.STATION_NO, conn)
+	if err != nil {
+		return nil, err
+	}
 	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var ctgConTypeGr irespo.ICtgConsumptionTypeGroupsRepository = &respo.CtgConsumptionTypeGroupsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	ctgData, err := ctgConTypeGr.GetAll()
 	if err != nil {
 		return nil, err
 	}
-	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user.USER_NAME, ctgData, conn)
+	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user, ctgData, conn, station)
 	if err != nil {
 		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	}
@@ -171,7 +198,7 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	}
 	log.Println("handData Done ...")
 	if len(handData) == 0 {
-		return nil, errors.New("لا توجد اي فواتير للعميل " + *in.Custkey)
+		return nil, errors.New("رقم الحساب غير صحيح او لا توجد اي فواتير للعميل " + *in.Custkey)
 	}
 	user, err := getUser(&username, conn)
 	if err != nil {
@@ -185,10 +212,41 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	if !(station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 1) {
 		stationNo = &station.STATION_NO
 	}
+	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	openRequests, err := cancelbill.GetByCustKeyClosed(*in.Custkey, false)
+	if err != nil {
+		return nil, err
+	}
+	openRequestsList := []int64{}
+	finalpayment := []*dbmodels.HAND_MH_ST{}
+	if len(openRequests) > 0 {
+		//formNoString := ""
+		for idxform := range openRequests {
+			openreqUse := openRequests[idxform]
+			// if formNoString != "" {
+			// 	formNoString += "," + *tools.Int64ToString(&openreqUse.FORM_NO)
+			// } else {
+			// 	formNoString = *tools.Int64ToString(&openreqUse.FORM_NO)
+			// }
+			openRequestsList = append(openRequestsList, openreqUse.FORM_NO)
+		}
+		for idxpay := range handData {
+			handpay := handData[idxpay]
+			isCanp, err := cancelbill.ExistCancelBill(handpay.CUSTKEY, *handpay.Payment_no, openRequestsList)
+			if err != nil {
+				return nil, err
+			}
+			if !isCanp {
+				finalpayment = append(finalpayment, handpay)
+			}
+		}
+	} else {
+		finalpayment = handData
+	}
 	DataJ := &pbMessages.GetCustomerPaymentsResponse{}
-	for idx := range handData {
+	for idx := range finalpayment {
 		handDataUse := handData[idx]
-		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user.USER_NAME, ctgData, conn)
+		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station)
 		if err != nil {
 			return nil, sendError(codes.Internal, err.Error(), err.Error())
 		}
@@ -439,10 +497,16 @@ func cancelledBillActionP(ctx *context.Context, in *pbMessages.CancelledBillActi
 	}
 	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var hhcybc irespo.IHhhcycRepository = &respo.HhhcycRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var customerwalks irespo.ICustomerWalksRepository = &respo.CustomerWalksRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	station, err := getStation(user.STATION_NO, conn)
 	if err != nil {
 		return nil, err
 	}
+	dbr, err := conn.Begin()
+	if err != nil {
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
+	}
+	defer dbr.Rollback()
 	for idx := range cancelledBillsData {
 		cancelledBillsDataUse := cancelledBillsData[idx]
 		var handData []*dbmodels.HAND_MH_ST
@@ -477,34 +541,66 @@ func cancelledBillActionP(ctx *context.Context, in *pbMessages.CancelledBillActi
 				}
 			}
 		}
+		//open payment for collection with last action
+		actClose := false
+		stmCl_blnce := float64(-9999)
+		if lucancelledBillsActionData[0].CLOSED != nil {
+			actClose = *lucancelledBillsActionData[0].CLOSED
+		}
+		if handData[0].Cl_blnce != nil {
+			stmCl_blnce = *handData[0].Cl_blnce
+		}
+		if actClose && stmCl_blnce >= 0 {
+			handDataCheck, err := hand.GetByCustKeyStationNoCycleID(handData[0].STATION_NO, handData[0].CUSTKEY, handData[0].CYCLE_ID)
+			if err != nil {
+				return nil, err
+			}
+			if handDataCheck != nil {
+				handDataCheck.IS_COLLECTION_ROW = tools.Int32ToInt32Ptr(1)
+				handDataCheck.Delivery_st = tools.ToIntPointer(0)
+				//always update empid
+				hhcybcChechData, err := hhcybc.GetByBillGroupBookCWalkCCycleID(*handDataCheck.BILLGROUP, *handDataCheck.BOOK_NO_C, *handDataCheck.WALK_NO_C, *handDataCheck.CYCLE_ID)
+				if err != nil {
+					return nil, err
+				}
+				var empic *int64
+				if len(hhcybcChechData) > 0 {
+					empic = hhcybcChechData[0].EMPID_C
+				}
+				if empic != nil {
+					handDataCheck.EMPID_C = empic
+				} else {
+					customerwalksData, err := customerwalks.GetByBillGroupBookNoWalkNo(*handDataCheck.BILLGROUP, *handDataCheck.BOOK_NO_C, *handDataCheck.WALK_NO_C)
+					if err != nil {
+						return nil, err
+					}
+					var assignto *int64
+					if len(customerwalksData) > 0 {
+						assignto = customerwalksData[0].ASSIGNED_TO_HH
+					}
+					if assignto != nil {
+						handDataCheck.EMPID_C = assignto
+					} else {
+						return nil, errors.New("برجاء مراجعة العهدة للمسار حيث لم يتمكن النظام من تخصيص الفاتورة لمحصل")
+					}
+				}
+				dbr.Save(handDataCheck)
+			}
+		}
 	}
+	dateNow := time.Now()
 	cancelledreqData[0].STATE = lucancelledBillsActionData[0].NEXT_STATE
 	cancelledreqData[0].STATUS = lucancelledBillsStateData[0].DESCRIPTION
+	cancelledreqData[0].STAMP_DATE = tools.ToTimePrt(dateNow)
 	if lucancelledBillsActionData[0].CLOSED != nil && *lucancelledBillsActionData[0].CLOSED {
 		cancelledreqData[0].CLOSED = lucancelledBillsActionData[0].CLOSED
 	}
-	dbr, err := conn.Begin()
-	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-	}
-	defer dbr.Rollback()
-	//defer dbr.Close()
-	// var cancelBillactionr irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	// err = cancelBillactionr.Upsert(&dbmodels.CANCELLED_BILLS_ACTION{
-	// 	ACTION_ID:   lucancelledBillsActionData[0].ID,
-	// 	DOCUMENT_NO: cancelledreqData[0].DOCUMENT_NO,
-	// 	CUSTKEY:     cancelledreqData[0].CUSTKEY,
-	// 	STAMP_DATE:  tools.ToTimePrt(time.Now()),
-	// 	STAMP_USER:  user.USER_NAME,
-	// 	USER_ID:     &user.ID,
-	// 	COMMENT:     in.Comment,
-	// 	FORM_NO:     cancelledreqData[0].FORM_NO,
-	// })
+
 	err = dbr.Add(&dbmodels.CANCELLED_BILLS_ACTION{
 		ACTION_ID:   lucancelledBillsActionData[0].ID,
 		DOCUMENT_NO: cancelledreqData[0].DOCUMENT_NO,
 		CUSTKEY:     cancelledreqData[0].CUSTKEY,
-		STAMP_DATE:  tools.ToTimePrt(time.Now()),
+		STAMP_DATE:  tools.ToTimePrt(dateNow),
 		STAMP_USER:  user.USER_NAME,
 		USER_ID:     &user.ID,
 		COMMENT:     in.Comment,
@@ -698,7 +794,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 
 	log.Println("Done .... 1")
 	var handbill irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-
+	var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	for idxx := range in.Request.Bills {
 		reqBill := in.Request.Bills[idxx]
 		cleanString(reqBill.PAYMENT_NO, nil, nil, nil)
@@ -714,6 +810,21 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		}
 		if len(handbillData) == 0 {
 			return nil, errors.New("رقم القاتورة غير موجود  " + *reqBill.PAYMENT_NO)
+		}
+		if handbillData[0] == nil {
+			return nil, errors.New("رقم القاتورة غير موجود  " + *reqBill.PAYMENT_NO)
+		}
+		collectedAmount := float64(0)
+		collectedAmountData, err := recep.GetByCustKeyCycleIDCancelled(*handbillData[0].CUSTKEY, handbillData[0].CYCLE_ID, false)
+		if err != nil {
+			return nil, err
+		}
+		for idx := range collectedAmountData {
+			recepDataUse := collectedAmountData[idx]
+			collectedAmount += recepDataUse.AMOUNT
+		}
+		if collectedAmount > 0.1 {
+			return nil, errors.New("الفاتورة تمت عليها عملية تحصيل  " + *reqBill.PAYMENT_NO)
 		}
 	}
 	log.Println("Done .... 2")

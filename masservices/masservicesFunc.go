@@ -16,7 +16,7 @@ import (
 	respo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/repositories"
 )
 
-func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, userName *string, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
+func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, user *dbmodels.USERS, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama, station *dbmodels.STATIONS) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprintf("recover error:%v", r))
@@ -39,7 +39,7 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 			}
 		}
 	}
-	pay, err := (*hand).GetPayment(paymentNo, stationNo, custKey, cycle_id)
+	pay, err := (*hand).GetPayment(paymentNo, nil, custKey, cycle_id)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +63,12 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 			return nil, errors.New("يوجد اكثر من فاتورة بهذا الرقم")
 		}
 	}
+	if !(station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 1) {
+		if pay[0].STATION_NO != nil && user.STATION_NO != nil && int64(*pay[0].STATION_NO) != *user.STATION_NO {
+			return nil, errors.New("الفاتورة تخص فرع اخر")
+		}
+	}
+
 	var cancelreq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
 	cancelData, err := cancelreq.GetByCustKeyClosed(*custKey, false)
 	if err != nil {
@@ -112,8 +118,8 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	if pay[0].READ_TYPE != nil {
 		readType = *pay[0].READ_TYPE
 	}
-	if userName != nil {
-		usernamee = *userName
+	if user.USER_NAME != nil {
+		usernamee = *user.USER_NAME
 	}
 	if pay[0].INSTALMENT_DATE != nil && pay[0].BILNG_DATE != nil && ((*pay[0].INSTALMENT_DATE).After(*pay[0].BILNG_DATE)) {
 		installDate = pay[0].BILNG_DATE
@@ -132,6 +138,10 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	timeN := time.Now()
 	collectedB4 := float64(0)
 	reminderValue := float64(0)
+	clbance := float64(0)
+	if pay[0].Cl_blnce != nil {
+		clbance = *pay[0].Cl_blnce
+	}
 	var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
 	recepData, err := recep.GetByCustKeyCycleIDCancelled(*pay[0].CUSTKEY, pay[0].CYCLE_ID, false)
 	if err != nil {
@@ -142,7 +152,20 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 		collectedB4 += recepDataUse.AMOUNT
 	}
 	reminderValue = float64(0)
-	reminderValue = tools.RoundTo(pay[0].Cl_blnce-collectedB4, 3)
+	reminderValue = tools.RoundTo(clbance-collectedB4, 3)
+	var deliverst *int32 = pay[0].Delivery_st
+	if reminderValue <= 0 {
+		reminderValue = 0
+		deliverst = tools.Int32ToInt32Ptr(1)
+	} else {
+		isBillColl, err := recep.GetByCustKeyCycleIDCancelledCollectionType(*pay[0].CUSTKEY, pay[0].CYCLE_ID, false)
+		if err != nil {
+			return nil, err
+		}
+		if len(isBillColl) > 0 {
+			deliverst = tools.Int32ToInt32Ptr(1)
+		}
+	}
 	ctypgrid := ""
 	if pay[0].Ctypegrp_id != nil {
 		ctypgrid = *pay[0].Ctypegrp_id
@@ -150,11 +173,11 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	DataJ := &serverhostmessages.CollectionDestributionItem{
 		PAYMENT_NO:            pay[0].Payment_no,
 		CUSTKEY:               pay[0].CUSTKEY,
-		DELIVERY_ST:           pay[0].Delivery_st,
+		DELIVERY_ST:           deliverst,
 		BILLGROUP:             pay[0].BILLGROUP,
 		BILNG_DATE:            create_timestamp(pay[0].BILNG_DATE),
-		CL_BLNCE:              tools.ToFloatPointer(pay[0].Cl_blnce),
-		ISSUED_AMOUNT:         tools.ToFloatPointer(pay[0].Cl_blnce),
+		CL_BLNCE:              pay[0].Cl_blnce,
+		ISSUED_AMOUNT:         pay[0].Cl_blnce,
 		SURNAME:               pay[0].Tent_name,
 		BOOK_NO:               &bookDesc,
 		WALK_NO:               pay[0].WALK_NO_C,

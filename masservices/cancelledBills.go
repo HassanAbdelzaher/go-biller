@@ -55,10 +55,22 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	}
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var lucancelledBillsAction irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsData []*dbmodels.CANCELLED_REQUEST
 	inclose := false
-	if in.IncludeClose != nil {
-		inclose = *in.IncludeClose
+	if in.State == nil {
+		inclose = true
+	} else {
+		checkOpened, err := lucancelledBillsAction.GetByCurrentState(*in.State)
+		if err != nil {
+			return nil, err
+		}
+		for idxcheckes := range checkOpened {
+			if checkOpened[idxcheckes].CLOSED != nil && *checkOpened[idxcheckes].CLOSED {
+				inclose = true
+				break
+			}
+		}
 	}
 	if in.State != nil && (station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0) {
 		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO, inclose)
@@ -67,7 +79,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	} else if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
 		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO, inclose)
 	} else {
-		cancelledBillsData, err = cancelledBills.GetByClosed(false)
+		cancelledBillsData, err = cancelledBills.GetByClosed(false, inclose)
 	}
 
 	if err != nil {
@@ -217,27 +229,29 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	if err != nil {
 		return nil, err
 	}
-	openRequestsList := []int64{}
+	//openRequestsList := []int64{}
 	finalpayment := []*dbmodels.HAND_MH_ST{}
 	if len(openRequests) > 0 {
-		//formNoString := ""
+		formNoString := ""
 		for idxform := range openRequests {
 			openreqUse := openRequests[idxform]
-			// if formNoString != "" {
-			// 	formNoString += "," + *tools.Int64ToString(&openreqUse.FORM_NO)
-			// } else {
-			// 	formNoString = *tools.Int64ToString(&openreqUse.FORM_NO)
-			// }
-			openRequestsList = append(openRequestsList, openreqUse.FORM_NO)
+			if formNoString != "" {
+				formNoString += "," + *tools.Int64ToString(&openreqUse.FORM_NO)
+			} else {
+				formNoString = *tools.Int64ToString(&openreqUse.FORM_NO)
+			}
+			//openRequestsList = append(openRequestsList, openreqUse.FORM_NO)
 		}
 		for idxpay := range handData {
 			handpay := handData[idxpay]
-			isCanp, err := cancelbill.ExistCancelBill(handpay.CUSTKEY, *handpay.Payment_no, openRequestsList)
+			isCanp, err := cancelbill.ExistCancelBill(handpay.CUSTKEY, *handpay.Payment_no, formNoString)
 			if err != nil {
 				return nil, err
 			}
 			if !isCanp {
 				finalpayment = append(finalpayment, handpay)
+			} else {
+				log.Println(handpay.Payment_no)
 			}
 		}
 	} else {
@@ -245,7 +259,7 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	}
 	DataJ := &pbMessages.GetCustomerPaymentsResponse{}
 	for idx := range finalpayment {
-		handDataUse := handData[idx]
+		handDataUse := finalpayment[idx]
 		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station)
 		if err != nil {
 			return nil, sendError(codes.Internal, err.Error(), err.Error())
@@ -792,7 +806,6 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		}
 	}
 
-	log.Println("Done .... 1")
 	var handbill irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	for idxx := range in.Request.Bills {
@@ -827,7 +840,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 			return nil, errors.New("الفاتورة تمت عليها عملية تحصيل  " + *reqBill.PAYMENT_NO)
 		}
 	}
-	log.Println("Done .... 2")
+
 	handcstData, err := handbill.GetAllByCustkey(*in.Request.CUSTKEY)
 	if err != nil {
 		return nil, err
@@ -873,7 +886,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		SURNAME:      in.Request.SURNAME,
 		STAMP_DATE:   create_time(in.Request.STAMP_DATE),
 	}
-	log.Println("Done .... 3", *in.Request.FORM_NO)
+
 	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
 		nextFormNo, err := cancelBillReq.GetMax("FORM_NO")
 		if err != nil {
@@ -886,11 +899,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		reqsave.FORM_NO = 1 + *nextFormNo
 		reqsave.CLOSED = tools.ToBoolPointer(false)
 		reqsave.COUNTER = tools.Int32ToInt32Ptr(0)
-		err = dbr.Add(reqsave)
-		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-		}
-		log.Println("Done .... 4", nextFormNo)
+
 	} else {
 		prevStms, err := cancelBillReq.GetByBillsFormNo(reqsave.FORM_NO)
 		if err != nil {
@@ -986,11 +995,19 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		}
 		reqsave.STATUS = stateData[0].DESCRIPTION
 		reqsave.STATE = &stateData[0].ID
+	}
+	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
+		err = dbr.Add(reqsave)
+		if err != nil {
+			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
+		}
+	} else {
 		err = dbr.Save(reqsave)
 		if err != nil {
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 	}
+
 	for idxb := range in.Request.Bills {
 		pay := in.Request.Bills[idxb]
 		payPAYMENT_NO := ""

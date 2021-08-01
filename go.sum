@@ -47,11 +47,11 @@ github.com/MaisrForAdvancedSystems/biller-charger v1.90.0/go.mod h1:uaN/iCQOPbBS
 github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0 h1:cCUKgSISShBN4JLI0wpAw6snU1BFxZD/QMSRDV62LI8=
 github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0/go.mod h1:+WfP/BVlBe2s247SISqNEn2aHgot/ZVl1xdXRLjNGFQ=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
-github.com/MaisrForAdvancedSystems/go-biller-proto v1.62.0 h1:5mbf2rGhxc8lYhrjEPzI/X0TPuEWslRpG1CVbuAhCjg=
-github.com/MaisrForAdvancedSystems/go-biller-proto v1.62.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
+github.com/MaisrForAdvancedSystems/go-biller-proto v1.63.0 h1:dG9SQMIH4YwtD+bGRLuwGEVZCH6lz5ZNhbjJHTOn6WI=
+github.com/MaisrForAdvancedSystems/go-biller-proto v1.63.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
-github.com/MaisrForAdvancedSystems/mas-db-models v1.91.0 h1:CC8Jw0/vJhn3eiwGGcANl9r0CveBOTSxfn2NXGHeBIY=
-github.com/MaisrForAdvancedSystems/mas-db-models v1.91.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.92.0 h1:tc5SxXVA8OjyFOou/6Bes7coJWYDcsfvdxpkkFf1vaI=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.92.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

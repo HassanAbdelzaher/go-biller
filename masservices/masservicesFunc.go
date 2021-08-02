@@ -16,7 +16,7 @@ import (
 	respo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/repositories"
 )
 
-func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, user *dbmodels.USERS, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama, station *dbmodels.STATIONS) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
+func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, user *dbmodels.USERS, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama, station *dbmodels.STATIONS, formNo *int64) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprintf("recover error:%v", r))
@@ -76,6 +76,9 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	}
 	for idx := range cancelData {
 		cancelDataUse := cancelData[idx]
+		if formNo != nil && cancelDataUse.FORM_NO == *formNo {
+			continue
+		}
 		cancelBillData, err := cancelreq.GetByFormNoPaymentNo(cancelDataUse.FORM_NO, *pay[0].Payment_no)
 		if err != nil {
 			return nil, err

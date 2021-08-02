@@ -12,6 +12,7 @@ import (
 
 	pbdbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/dbmessages"
 	pbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/messages"
+	"github.com/MaisrForAdvancedSystems/go-biller-proto/go/serverhostmessages"
 	"github.com/MaisrForAdvancedSystems/mas-db-models/dbmodels"
 	"github.com/MaisrForAdvancedSystems/mas-db-models/dbpool"
 	irespo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/interfaces"
@@ -165,7 +166,7 @@ func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *p
 	if err != nil {
 		return nil, err
 	}
-	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user, ctgData, conn, station)
+	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user, ctgData, conn, station, nil)
 	if err != nil {
 		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	}
@@ -208,7 +209,6 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	if err != nil {
 		return nil, err
 	}
-	log.Println("handData Done ...")
 	if len(handData) == 0 {
 		return nil, errors.New("رقم الحساب غير صحيح او لا توجد اي فواتير للعميل " + *in.Custkey)
 	}
@@ -235,6 +235,9 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 		formNoString := ""
 		for idxform := range openRequests {
 			openreqUse := openRequests[idxform]
+			if in.FormNo != nil && openreqUse.FORM_NO == *in.FormNo {
+				continue
+			}
 			if formNoString != "" {
 				formNoString += "," + *tools.Int64ToString(&openreqUse.FORM_NO)
 			} else {
@@ -260,7 +263,7 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	DataJ := &pbMessages.GetCustomerPaymentsResponse{}
 	for idx := range finalpayment {
 		handDataUse := finalpayment[idx]
-		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station)
+		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station, in.FormNo)
 		if err != nil {
 			return nil, sendError(codes.Internal, err.Error(), err.Error())
 		}
@@ -765,7 +768,11 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 
 	var cancelBillReq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 
-	cancelledBillsReqData, err := cancelBillReq.GetByCustKeyDocNoNotFormNo(*in.Request.CUSTKEY, *in.Request.DOCUMENT_NO, *in.Request.FORM_NO)
+	formN := int64(0)
+	if in.Request.FORM_NO != nil {
+		formN = *in.Request.FORM_NO
+	}
+	cancelledBillsReqData, err := cancelBillReq.GetByCustKeyDocNoNotFormNo(*in.Request.CUSTKEY, *in.Request.DOCUMENT_NO, formN)
 	if err != nil {
 		return nil, err
 	}
@@ -773,7 +780,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		return nil, errors.New("رقم المستند مستخدم بالفعل")
 	}
 
-	cancelledBillsReqSData, err := cancelBillReq.GetByCustKeyNotFormNo(*in.Request.CUSTKEY, *in.Request.FORM_NO)
+	cancelledBillsReqSData, err := cancelBillReq.GetByCustKeyNotFormNo(*in.Request.CUSTKEY, formN)
 	if err != nil {
 		return nil, err
 	}
@@ -1106,5 +1113,169 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	DataJ := &pbMessages.SaveBillCancelRequestResponse{Message: tools.ToStringPointer("Done")}
 
 	log.Println("End SaveBillCancelRequest..")
+	return DataJ, nil
+}
+func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRequest) (rsp *pbMessages.CancelBillsReportResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	user, err := getUser(&username, conn)
+	if err != nil {
+		return nil, err
+	}
+	station, err := getStation(user.STATION_NO, conn)
+	if err != nil {
+		return nil, err
+	}
+	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	cleanString(in.Custkey, nil, nil, nil)
+	var stationNo *int32
+	if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
+		stationNo = &station.STATION_NO
+	}
+	if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 1 {
+		if in.StationNo != nil {
+			stationNo = in.StationNo
+		}
+	}
+	countReport, err := cancelledBills.GetCountRequestsBills(stationNo, in.Custkey, in.State, in.FormNo, create_time(in.RequestFrom), create_time(in.RequestTo), create_time(in.StampFrom), create_time(in.StampTo))
+	if err != nil {
+		return nil, err
+	}
+	if countReport > 10000 {
+		return nil, errors.New("الحد الاقصى للبيانات هو 10000 برجاء تحديد عامل تصفية")
+	}
+	cancelledBillsData, err := cancelledBills.GetRequestsBills(stationNo, in.Custkey, in.State, in.FormNo, create_time(in.RequestFrom), create_time(in.RequestTo), create_time(in.StampFrom), create_time(in.StampTo))
+	DataJ := &pbMessages.CancelBillsReportResponse{}
+	for idx := range cancelledBillsData {
+		usj := &serverhostmessages.CollectionDestributionItem{}
+		cancelledBillsUse := cancelledBillsData[idx]
+		if cancelledBillsUse.STATE == nil || cancelledBillsUse.FORM_NO == nil {
+			continue
+		}
+		lastaction, err := cancelledBillsAction.GetByFormNoWithState(*cancelledBillsUse.FORM_NO, cancelledBillsUse.STATE)
+		if err != nil {
+			return nil, err
+		}
+		if cancelledBillsUse.CUSTKEY != nil {
+			usj.CUSTKEY = cancelledBillsUse.CUSTKEY
+		} else {
+			usj.CUSTKEY = tools.ToStringPointer("")
+		}
+		if cancelledBillsUse.PAYMENT_NO != nil {
+			usj.PAYMENT_NO = cancelledBillsUse.PAYMENT_NO
+		} else {
+			usj.PAYMENT_NO = tools.ToStringPointer("")
+		}
+		if cancelledBillsUse.SURNAME != nil {
+			usj.SURNAME = cancelledBillsUse.SURNAME
+		} else {
+			usj.SURNAME = tools.ToStringPointer("")
+		}
+		usj.BILNG_DATE = create_timestamp(cancelledBillsUse.BILNG_DATE)
+		usj.CL_BLNCE = cancelledBillsUse.CL_BLNCE
+		usj.FORM_NO = cancelledBillsUse.FORM_NO
+		usj.STAMP_DATE = create_timestamp(cancelledBillsUse.STAMP_DATE)
+		usj.COMMENT = cancelledBillsUse.BILLCOMMENT
+		usj.REQUEST_COMMENT = cancelledBillsUse.COMMENT
+		if len(lastaction) > 0 {
+			usj.ACTION_COMMENT = lastaction[0].COMMENT
+		}
+		usj.ACTIVITY = tools.ToStringPointer("")
+		usj.CALC_TYPE = tools.ToStringPointer("")
+		usj.ADDRESS = tools.ToStringPointer("")
+		usj.TotalAmountCollected = tools.ToFloatPointer(0)
+		usj.TotalCountCollected = tools.ToFloatPointer(0)
+		usj.IS_COLLECTED_BY_OTHER = tools.ToBoolPointer(false)
+		usj.IS_COLLECTED_BY_OWNER = tools.ToBoolPointer(false)
+		usj.BILLGROUP = tools.ToStringPointer("")
+		usj.BOOK_NO = tools.ToStringPointer("")
+		usj.WALK_NO = tools.ToStringPointer("")
+		usj.CTG = tools.ToStringPointer("")
+		usj.OLD_KEY = tools.ToStringPointer("")
+		usj.USER = tools.ToStringPointer("")
+		DataJ.Items = append(DataJ.Items, usj)
+	}
+	log.Println("End cancelBillsReportP..")
+	return DataJ, nil
+}
+func GetStationsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetStationsResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	user, err := getUser(&username, conn)
+	if err != nil {
+		return nil, err
+	}
+	station, err := getStation(user.STATION_NO, conn)
+	if err != nil {
+		return nil, err
+	}
+	if station == nil {
+		return nil, errors.New("Station Not Found")
+	}
+
+	DataJ := &pbMessages.GetStationsResponse{}
+	if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
+		usj := &pbMessages.Station{}
+		usj.Description = station.DESCRIPTION
+		usj.StationNo = &station.STATION_NO
+		usj.IsHead = tools.ToBoolPointer(false)
+		DataJ.Stations = append(DataJ.Stations, usj)
+	} else {
+		var stationr irespo.ICommonRepository = &respo.CommonRepository{Lama: conn}
+		stations, err := stationr.GetStations()
+		if err != nil {
+			return nil, err
+		}
+		for idx := range stations {
+			stationData := stations[idx]
+			usj := &pbMessages.Station{}
+			usj.Description = stationData.DESCRIPTION
+			usj.StationNo = &stationData.STATION_NO
+			if stationData.IS_HEADQUARTERS != nil && *stationData.IS_HEADQUARTERS == 1 {
+				usj.IsHead = tools.ToBoolPointer(true)
+			} else {
+				usj.IsHead = tools.ToBoolPointer(false)
+			}
+			DataJ.Stations = append(DataJ.Stations, usj)
+		}
+	}
+	log.Println("End GetStationsP..")
 	return DataJ, nil
 }

@@ -356,3 +356,33 @@ func (s *serverCollection) SaveBillCancelRequest(ctx context.Context, in *pbMess
 	}
 	return Data, nil
 }
+
+// CancelBillsReport implements
+func (s *serverCollection) CancelBillsReport(ctx context.Context, in *pbMessages.CancelBillsReportRequest) (rsp *pbMessages.CancelBillsReportResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... CancelBillsReport ....")
+	Data, err := cancelBillsReportP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}
+
+// GetStations implements
+func (s *serverCollection) GetStations(ctx context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetStationsResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... GetStations ....")
+	Data, err := GetStationsP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}

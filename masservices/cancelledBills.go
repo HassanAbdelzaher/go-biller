@@ -243,19 +243,22 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 			} else {
 				formNoString = *tools.Int64ToString(&openreqUse.FORM_NO)
 			}
-			//openRequestsList = append(openRequestsList, openreqUse.FORM_NO)
 		}
-		for idxpay := range handData {
-			handpay := handData[idxpay]
-			isCanp, err := cancelbill.ExistCancelBill(handpay.CUSTKEY, *handpay.Payment_no, formNoString)
-			if err != nil {
-				return nil, err
+		if formNoString != "" {
+			for idxpay := range handData {
+				handpay := handData[idxpay]
+				isCanp, err := cancelbill.ExistCancelBill(handpay.CUSTKEY, *handpay.Payment_no, formNoString)
+				if err != nil {
+					return nil, err
+				}
+				if !isCanp {
+					finalpayment = append(finalpayment, handpay)
+				} else {
+					log.Println(handpay.Payment_no)
+				}
 			}
-			if !isCanp {
-				finalpayment = append(finalpayment, handpay)
-			} else {
-				log.Println(handpay.Payment_no)
-			}
+		} else {
+			finalpayment = handData
 		}
 	} else {
 		finalpayment = handData

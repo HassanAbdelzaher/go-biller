@@ -8,6 +8,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	pbdbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/dbmessages"
@@ -17,8 +18,10 @@ import (
 	"github.com/MaisrForAdvancedSystems/mas-db-models/dbpool"
 	irespo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/interfaces"
 	respo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/repositories"
+	"golang.org/x/sync/syncmap"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRequest) (rsp *pbMessages.CancelledBillListResponse, err error) {
@@ -88,17 +91,74 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	}
 	DataJ := &pbMessages.CancelledBillListResponse{}
 	stringEmpty := ""
+	// for idx := range cancelledBillsData {
+	// 	usj := &pbdbMessages.CANCELLED_REQUEST{}
+	// 	cancelledBillsUse := cancelledBillsData[idx]
+	// 	lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, in.State)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if len(lastaction) > 0 {
+	// 		usj.STAMP_DATE = create_timestamp(lastaction[0].STAMP_DATE)
+	// 	} else {
+	// 		usj.STAMP_DATE = create_timestamp(cancelledBillsUse.STAMP_DATE)
+	// 	}
+	// 	usj.CLOSED = cancelledBillsUse.CLOSED
+	// 	if cancelledBillsUse.COMMENT == nil {
+	// 		usj.COMMENT = &stringEmpty
+	// 	} else {
+	// 		usj.COMMENT = cancelledBillsUse.COMMENT
+	// 	}
+	// 	usj.CUSTKEY = &cancelledBillsUse.CUSTKEY
+	// 	usj.DOCUMENT_NO = &cancelledBillsUse.DOCUMENT_NO
+	// 	usj.FORM_NO = &cancelledBillsUse.FORM_NO
+	// 	usj.REQUEST_BY = cancelledBillsUse.REQUEST_BY
+	// 	usj.REQUEST_DATE = create_timestamp(cancelledBillsUse.REQUEST_DATE)
+	// 	usj.STATE = cancelledBillsUse.STATE
+	// 	usj.STATION_NO = tools.StringToInt32(&cancelledBillsUse.STATION_NO)
+	// 	usj.STATUS = cancelledBillsUse.STATUS
+	// 	usj.SURNAME = cancelledBillsUse.SURNAME
+
+	// 	DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
+	// }
+	//lastactions := make(map[int64]*timestamppb.Timestamp)
+	lastactions := syncmap.Map{}
+	var wg sync.WaitGroup
+	var erro error
+	for idx := range cancelledBillsData {
+		cancelledBillsUsee := cancelledBillsData[idx]
+		wg.Add(1)
+		go func(wgg *sync.WaitGroup, cancelledBillsUse *dbmodels.CANCELLED_REQUEST) {
+			defer wgg.Done()
+			if erro != nil {
+				return
+			}
+			lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, in.State)
+			if err != nil {
+				erro = err
+				return
+			}
+			var stamp *timestamppb.Timestamp
+			if len(lastaction) > 0 {
+				stamp = create_timestamp(lastaction[0].STAMP_DATE)
+			} else {
+				stamp = create_timestamp(cancelledBillsUse.STAMP_DATE)
+			}
+			//lastactions[cancelledBillsUse.FORM_NO] = stamp
+			lastactions.Store(cancelledBillsUse.FORM_NO, stamp)
+		}(&wg, cancelledBillsUsee)
+	}
+	wg.Wait()
+	if erro != nil {
+		return nil, erro
+	}
 	for idx := range cancelledBillsData {
 		usj := &pbdbMessages.CANCELLED_REQUEST{}
 		cancelledBillsUse := cancelledBillsData[idx]
-		lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, in.State)
-		if err != nil {
-			return nil, err
-		}
-		if len(lastaction) > 0 {
-			usj.STAMP_DATE = create_timestamp(lastaction[0].STAMP_DATE)
-		} else {
-			usj.STAMP_DATE = create_timestamp(cancelledBillsUse.STAMP_DATE)
+		//usj.STAMP_DATE = lastactions[cancelledBillsUse.FORM_NO]
+		v, ok := lastactions.Load(cancelledBillsUse.FORM_NO)
+		if ok {
+			usj.STAMP_DATE = v.(*timestamppb.Timestamp)
 		}
 		usj.CLOSED = cancelledBillsUse.CLOSED
 		if cancelledBillsUse.COMMENT == nil {
@@ -264,14 +324,38 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 		finalpayment = handData
 	}
 	DataJ := &pbMessages.GetCustomerPaymentsResponse{}
+	//var wg sync.WaitGroup
+	var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	for idx := range finalpayment {
+		//handDataUsee := finalpayment[idx]
+		// wg.Add(1)
+		// go func(wge *sync.WaitGroup, handDataUse *dbmodels.HAND_MH_ST) error {
+		// 	defer wge.Done()
+		// 	usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station, in.FormNo)
+		// 	if err != nil {
+		// 		return sendError(codes.Internal, err.Error(), err.Error())
+		// 	}
+		// 	DataJ.Items = append(DataJ.Items, usj)
+		// 	return nil
+		// }(&wg, handDataUsee)
 		handDataUse := finalpayment[idx]
+		if handDataUse.Payment_no == nil {
+			continue
+		}
+		countReceipts, err := recep.GetCountByPaymentNoCancelled(*handDataUse.Payment_no, false)
+		if err != nil {
+			return nil, err
+		}
+		if countReceipts > 0 {
+			continue
+		}
 		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station, in.FormNo)
 		if err != nil {
 			return nil, sendError(codes.Internal, err.Error(), err.Error())
 		}
 		DataJ.Items = append(DataJ.Items, usj)
 	}
+	//wg.Wait()
 	log.Println("end ..")
 	return DataJ, nil
 }
@@ -837,18 +921,25 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		if handbillData[0] == nil {
 			return nil, errors.New("رقم القاتورة غير موجود  " + *reqBill.PAYMENT_NO)
 		}
-		collectedAmount := float64(0)
-		collectedAmountData, err := recep.GetByCustKeyCycleIDCancelled(*handbillData[0].CUSTKEY, handbillData[0].CYCLE_ID, false)
+		countReceipts, err := recep.GetCountByPaymentNoCancelled(*reqBill.PAYMENT_NO, false)
 		if err != nil {
 			return nil, err
 		}
-		for idx := range collectedAmountData {
-			recepDataUse := collectedAmountData[idx]
-			collectedAmount += recepDataUse.AMOUNT
-		}
-		if collectedAmount > 0.1 {
+		if countReceipts > 0 {
 			return nil, errors.New("الفاتورة تمت عليها عملية تحصيل  " + *reqBill.PAYMENT_NO)
 		}
+		// collectedAmount := float64(0)
+		// collectedAmountData, err := recep.GetByCustKeyCycleIDCancelled(*handbillData[0].CUSTKEY, handbillData[0].CYCLE_ID, false)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// for idx := range collectedAmountData {
+		// 	recepDataUse := collectedAmountData[idx]
+		// 	collectedAmount += recepDataUse.AMOUNT
+		// }
+		// if collectedAmount > 0.1 {
+		// 	return nil, errors.New("الفاتورة تمت عليها عملية تحصيل  " + *reqBill.PAYMENT_NO)
+		// }
 	}
 
 	handcstData, err := handbill.GetAllByCustkey(*in.Request.CUSTKEY)

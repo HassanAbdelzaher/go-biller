@@ -74,14 +74,20 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	if err != nil {
 		return nil, err
 	}
+	commentbill := ""
 	for idx := range cancelData {
 		cancelDataUse := cancelData[idx]
-		if formNo != nil && cancelDataUse.FORM_NO == *formNo {
-			continue
-		}
 		cancelBillData, err := cancelreq.GetByFormNoPaymentNo(cancelDataUse.FORM_NO, *pay[0].Payment_no)
 		if err != nil {
 			return nil, err
+		}
+		if formNo != nil && cancelDataUse.FORM_NO == *formNo {
+			if len(cancelBillData) > 0 {
+				if cancelBillData[0].COMMENT != nil {
+					commentbill = *cancelBillData[0].COMMENT
+				}
+			}
+			continue
 		}
 		if len(cancelBillData) > 0 {
 			return nil, errors.New("يوجد طلب مفتوح على الفاتورة قيد المراجعة")
@@ -245,6 +251,7 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 		TotalCountCollected:   tools.ToFloatPointer(0),
 		IS_COLLECTED_BY_OWNER: tools.ToBoolPointer(false),
 		IS_COLLECTED_BY_OTHER: tools.ToBoolPointer(false),
+		COMMENT:               &commentbill,
 	}
 	var ctydetail irespo.IBillCtypesRepository = &respo.BillCtypesRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
 	ctydetailData, err := ctydetail.GetSumsByCustKeyCycleID(*pay[0].CUSTKEY, *pay[0].CYCLE_ID)

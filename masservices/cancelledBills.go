@@ -65,7 +65,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	if in.State == nil {
 		inclose = true
 	} else {
-		checkOpened, err := lucancelledBillsAction.GetByCurrentState(*in.State)
+		checkOpened, err := lucancelledBillsAction.GetByNextState(*in.State)
 		if err != nil {
 			return nil, err
 		}

@@ -278,7 +278,19 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 					break
 				}
 			}
-			totalV := tools.RoundTo(*ctydetailDataUse.OTHER_AMT+*ctydetailDataUse.WATER_AMT+*ctydetailDataUse.SEWER_AMT, 2)
+			otherAmount := float64(0)
+			waterAmount := float64(0)
+			sewerAmount := float64(0)
+			if ctydetailDataUse.OTHER_AMT != nil {
+				otherAmount = *ctydetailDataUse.OTHER_AMT
+			}
+			if ctydetailDataUse.WATER_AMT != nil {
+				waterAmount = *ctydetailDataUse.WATER_AMT
+			}
+			if ctydetailDataUse.SEWER_AMT != nil {
+				sewerAmount = *ctydetailDataUse.SEWER_AMT
+			}
+			totalV := tools.RoundTo(otherAmount+waterAmount+sewerAmount, 2)
 			ctcyJ := serverhostmessages.CTYPE_DTL{
 				DESCRIPTION:  ctydetailDataUse.DESCRIPTION,
 				OTHER_AMT:    ctydetailDataUse.OTHER_AMT,

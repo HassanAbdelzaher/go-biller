@@ -46,7 +46,13 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	if len(pay) == 0 {
 		return nil, errors.New("لا يوجد فاتورة بهذا الرقم")
 	}
-	if (custKey != nil && *custKey != "") && len(pay) > 1 {
+	if custKey == nil {
+		custKey = pay[0].CUSTKEY
+	}
+	if paymentNo == nil {
+		paymentNo = pay[0].Payment_no
+	}
+	if len(pay) > 1 {
 		sort.SliceStable(pay, func(i, j int) bool {
 			if pay[i].BILNG_DATE == nil && pay[j].BILNG_DATE == nil {
 				return false
@@ -94,6 +100,9 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 		}
 	}
 	var customerbook irespo.ICustomerBooksRepository = &respo.CustomerBooksRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
+	if pay[0].BILLGROUP == nil || pay[0].BOOK_NO_C == nil {
+		return nil, errors.New("لم يتم تحديد BILLGROUP او BOOK_NO_C")
+	}
 	bookData, err := customerbook.GetByBillGroupCode(*pay[0].BILLGROUP, *pay[0].BOOK_NO_C)
 	if err != nil {
 		return nil, err

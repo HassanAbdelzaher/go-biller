@@ -16,7 +16,7 @@ import (
 	respo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/repositories"
 )
 
-func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, stationNo *int32, hand *irespo.IHandMhStRepository, user *dbmodels.USERS, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama, station *dbmodels.STATIONS, formNo *int64) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
+func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQuery *bool, cycle_id *int32, hand *irespo.IHandMhStRepository, user *dbmodels.USERS, ctg []*dbmodels.CTG_CONSUMPTIONTYPEGRPS, conn *lama.Lama, station *dbmodels.STATIONS, formNo *int64, isHst *bool) (rsp *serverhostmessages.CollectionDestributionItem, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprintf("recover error:%v", r))
@@ -27,6 +27,9 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	}
 	if skipBracodTrim == nil {
 		skipBracodTrim = tools.ToBoolPointer(false)
+	}
+	if isHst == nil {
+		isHst = tools.ToBoolPointer(false)
 	}
 	if paymentNo == nil && custKey == nil {
 		return nil, errors.New("برجاء تحديد كود الفاتورة أو رقم الحساب")
@@ -39,7 +42,12 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 			}
 		}
 	}
-	pay, err := (*hand).GetPayment(paymentNo, nil, custKey, cycle_id)
+	var pay []*dbmodels.V_HAND_MH_ST_BILL_ITEMS
+	if isHst != nil && *isHst {
+		pay, err = (*hand).GetPaymentHST(paymentNo, nil, custKey, cycle_id)
+	} else {
+		pay, err = (*hand).GetPayment(paymentNo, nil, custKey, cycle_id)
+	}
 	if err != nil {
 		return nil, err
 	}

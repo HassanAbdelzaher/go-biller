@@ -60,6 +60,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var lucancelledBillsAction irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var lucancelledBillsState irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsData []*dbmodels.CANCELLED_REQUEST
 	inclose := false
 	if in.State == nil {
@@ -123,8 +124,13 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	// }
 	//lastactions := make(map[int64]*timestamppb.Timestamp)
 	lastactions := syncmap.Map{}
+	lastactionsStates := syncmap.Map{}
 	var wg sync.WaitGroup
 	var erro error
+	type formState struct {
+		cancel *bool
+		edit   *bool
+	}
 	for idx := range cancelledBillsData {
 		cancelledBillsUsee := cancelledBillsData[idx]
 		wg.Add(1)
@@ -138,6 +144,15 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 				erro = err
 				return
 			}
+			formStateReq := formState{cancel: nil, edit: nil}
+			if cancelledBillsUse.STATE != nil {
+				laststate, err := lucancelledBillsState.GetByID(*cancelledBillsUse.STATE)
+				if err != nil {
+					erro = err
+					return
+				}
+				formStateReq = formState{cancel: laststate[0].CANCELLED, edit: laststate[0].EDITED}
+			}
 			var stamp *timestamppb.Timestamp
 			if len(lastaction) > 0 {
 				stamp = create_timestamp(lastaction[0].STAMP_DATE)
@@ -146,6 +161,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 			}
 			//lastactions[cancelledBillsUse.FORM_NO] = stamp
 			lastactions.Store(cancelledBillsUse.FORM_NO, stamp)
+			lastactionsStates.Store(cancelledBillsUse.FORM_NO, formStateReq)
 		}(&wg, cancelledBillsUsee)
 	}
 	wg.Wait()
@@ -159,6 +175,11 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		v, ok := lastactions.Load(cancelledBillsUse.FORM_NO)
 		if ok {
 			usj.STAMP_DATE = v.(*timestamppb.Timestamp)
+		}
+		vstate, ok := lastactionsStates.Load(cancelledBillsUse.FORM_NO)
+		if ok {
+			usj.CANCELLED = vstate.(formState).cancel
+			usj.EDITED = vstate.(formState).edit
 		}
 		usj.CLOSED = cancelledBillsUse.CLOSED
 		if cancelledBillsUse.COMMENT == nil {
@@ -226,7 +247,7 @@ func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *p
 	if err != nil {
 		return nil, err
 	}
-	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, nil, &hand, user, ctgData, conn, station, nil)
+	usj, err := getPayment(in.PaymentNo, in.Custkey, in.SkipBracodTrim, in.ForQuery, in.CycleId, &hand, user, ctgData, conn, station, nil, tools.ToBoolPointer(false))
 	if err != nil {
 		return nil, sendError(codes.Internal, err.Error(), err.Error())
 	}
@@ -280,10 +301,10 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 	if err != nil {
 		return nil, err
 	}
-	var stationNo *int32 = nil
+	/*var stationNo *int32 = nil
 	if !(station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 1) {
 		stationNo = &station.STATION_NO
-	}
+	}*/
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	openRequests, err := cancelbill.GetByCustKeyClosed(*in.Custkey, false)
 	if err != nil {
@@ -349,7 +370,7 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 		if countReceipts > 0 {
 			continue
 		}
-		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, stationNo, &hand, user, ctgData, conn, station, in.FormNo)
+		usj, err := getPayment(handDataUse.Payment_no, &handDataUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(false))
 		if err != nil {
 			return nil, sendError(codes.Internal, err.Error(), err.Error())
 		}
@@ -803,6 +824,8 @@ func billStatesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.Bi
 			ID:          &lucancelledStatesDataUse.ID,
 			DESCRIPTION: lucancelledStatesDataUse.DESCRIPTION,
 			RECAL_READY: lucancelledStatesDataUse.RECAL_READY,
+			CANCELLED:   lucancelledStatesDataUse.CANCELLED,
+			EDITED:      lucancelledStatesDataUse.EDITED,
 		})
 	}
 	log.Println("End BillStates..")
@@ -1311,7 +1334,7 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 	log.Println("End cancelBillsReportP..")
 	return DataJ, nil
 }
-func GetStationsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetStationsResponse, err error) {
+func getStationsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetStationsResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprintf("recover error:%v", r))
@@ -1371,5 +1394,90 @@ func GetStationsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.G
 		}
 	}
 	log.Println("End GetStationsP..")
+	return DataJ, nil
+}
+func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRequest) (rsp *pbMessages.GetFormNoPaymentsResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	if in.FormNo == nil {
+		return nil, errors.New("رقم الطلب غير صحيح")
+	}
+
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	req, err := cancelbill.GetByFormNo(*in.FormNo)
+	if err != nil {
+		return nil, err
+	}
+	if len(req) == 0 {
+		return nil, errors.New("لا يوجد طلب بهذا الرقم")
+	}
+	if req[0].CLOSED != nil && *req[0].CLOSED {
+		return nil, errors.New("الطلب تم اغلاقه")
+	}
+	cleanString(&req[0].CUSTKEY, tools.ToStringPointer(""), nil, nil)
+	if strings.TrimSpace(req[0].CUSTKEY) == "" {
+		return nil, errors.New("رقم حساب العميل غير صحيح")
+	}
+	var ctgConTypeGr irespo.ICtgConsumptionTypeGroupsRepository = &respo.CtgConsumptionTypeGroupsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	ctgData, err := ctgConTypeGr.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+
+	user, err := getUser(&username, conn)
+	if err != nil {
+		return nil, err
+	}
+	station, err := getStation(user.STATION_NO, conn)
+	if err != nil {
+		return nil, err
+	}
+	bills, err := cancelbill.GetByBillsFormNo(*in.FormNo)
+	if err != nil {
+		return nil, err
+	}
+
+	DataJ := &pbMessages.GetFormNoPaymentsResponse{}
+	//var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	for idx := range bills {
+		billUse := bills[idx]
+		/*countReceipts, err := recep.GetCountByPaymentNoCancelled(billUse.PAYMENT_NO, false)
+		if err != nil {
+			return nil, err
+		}
+		if countReceipts > 0 {
+			continue
+		}*/
+		usjOld, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(true))
+		if err != nil {
+			return nil, sendError(codes.Internal, err.Error(), err.Error())
+		}
+		usjNew, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(false))
+		if err != nil {
+			return nil, sendError(codes.Internal, err.Error(), err.Error())
+		}
+		usj := &serverhostmessages.OldNewItem{OldItem: usjOld, NewItem: usjNew}
+		DataJ.Items = append(DataJ.Items, usj)
+	}
+	log.Println("end ..")
 	return DataJ, nil
 }

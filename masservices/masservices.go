@@ -380,7 +380,22 @@ func (s *serverCollection) GetStations(ctx context.Context, in *pbMessages.Empty
 		}
 	}()
 	log.Println(".... GetStations ....")
-	Data, err := GetStationsP(&ctx, in)
+	Data, err := getStationsP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}
+
+// GetFormNoPayments implements
+func (s *serverCollection) GetFormNoPayments(ctx context.Context, in *pbMessages.GetFormNoPaymentsRequest) (rsp *pbMessages.GetFormNoPaymentsResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... GetFormNoPayments ....")
+	Data, err := getFormNoPaymentsP(&ctx, in)
 	if err != nil {
 		return Data, err
 	}

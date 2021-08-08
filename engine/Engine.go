@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 
 	"runtime/debug"
 
 	billing "github.com/MaisrForAdvancedSystems/go-biller-proto/go"
+	"github.com/MaisrForAdvancedSystems/mas-db-models/dbpool"
+	irespo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/interfaces"
+	respo "github.com/MaisrForAdvancedSystems/mas-db-models/repositories/repositories"
 )
 
 // Info(context.Context, *Empty) (*ServiceInfo, error)
@@ -83,6 +87,48 @@ func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillReques
 			err = errors.New(fmt.Sprintf("panic at GetBillsByCustkey %v", string(debug.Stack())))
 		}
 	}()
+	if rq.FormNo == nil {
+		return nil, errors.New("لا يوجد طلب")
+	}
+	formno, err := strconv.ParseInt(*rq.FormNo, 10, 64)
+	if err != nil {
+		return nil, errors.New("قم بادخال رقم للطلب")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	} else {
+		conn.Debug = true
+	}
+	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	req, err := cancelbill.GetByFormNo(formno)
+	if err != nil {
+		return nil, err
+	}
+	if len(req) == 0 {
+		return nil, errors.New("لا يوجد طلب بهذا الرقم")
+	}
+	if req[0].CLOSED != nil && *req[0].CLOSED {
+		return nil, errors.New("الطلب تم اغلاقه")
+	}
+	var lucancelledBillsState irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	if req[0].STATE != nil {
+		reqState, err := lucancelledBillsState.GetByID(*req[0].STATE)
+		if err != nil {
+			return nil, err
+		}
+		if len(reqState) > 0 {
+			if reqState[0].RECAL_READY != nil && !*reqState[0].RECAL_READY {
+				return nil, errors.New("الطلب لابد ان يكون في مرحله للاحتساب")
+			}
+		} else {
+			return nil, errors.New("لابد ان يكون للطلب حاله")
+		}
+	} else {
+		return nil, errors.New("لابد ان يكون للطلب حاله")
+	}
+
 	response, err := e.DataProvider.GetBillsByFormNo(ctx, rq)
 	if err != nil {
 		return nil, err

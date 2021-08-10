@@ -84,7 +84,7 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	}
 
 	var cancelreq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: (*hand).GetUnderLineConnection()}}
-	cancelData, err := cancelreq.GetByCustKeyClosed(*custKey, false)
+	cancelData, err := cancelreq.GetByCustKeyClosed(*custKey, false, 1)
 	if err != nil {
 		return nil, err
 	}

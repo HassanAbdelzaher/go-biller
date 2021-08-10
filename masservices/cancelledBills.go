@@ -80,13 +80,13 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		}
 	}
 	if in.State != nil && (station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0) {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO, inclose)
+		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO, inclose, 1)
 	} else if in.State != nil {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatus(false, *in.State, inclose)
+		cancelledBillsData, err = cancelledBills.GetByClosedStatus(false, *in.State, inclose, 1)
 	} else if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
-		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO, inclose)
+		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO, inclose, 1)
 	} else {
-		cancelledBillsData, err = cancelledBills.GetByClosed(false, inclose)
+		cancelledBillsData, err = cancelledBills.GetByClosed(false, inclose, 1)
 	}
 
 	if err != nil {
@@ -308,7 +308,7 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 		stationNo = &station.STATION_NO
 	}*/
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	openRequests, err := cancelbill.GetByCustKeyClosed(*in.Custkey, false)
+	openRequests, err := cancelbill.GetByCustKeyClosed(*in.Custkey, false, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func cancelledBillRequestP(ctx *context.Context, in *pbMessages.CancelledBillReq
 	}
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledreqData []*dbmodels.CANCELLED_REQUEST
-	cancelledreqData, err = cancelledBills.GetByFormNo(*in.FormNo)
+	cancelledreqData, err = cancelledBills.GetByFormNo(*in.FormNo, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +577,7 @@ func cancelledBillActionP(ctx *context.Context, in *pbMessages.CancelledBillActi
 	}
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledreqData []*dbmodels.CANCELLED_REQUEST
-	cancelledreqData, err = cancelledBills.GetByFormNo(*in.FormNo)
+	cancelledreqData, err = cancelledBills.GetByFormNo(*in.FormNo, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -897,7 +897,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	if apptypeData == nil {
 		return nil, errors.New("نوع الطلب غير معرف")
 	}
-	cancelledBillsReqData, err := cancelBillReq.GetByCustKeyDocNoNotFormNo(*in.Request.CUSTKEY, *in.Request.DOCUMENT_NO, formN)
+	cancelledBillsReqData, err := cancelBillReq.GetByCustKeyDocNoNotFormNo(*in.Request.CUSTKEY, *in.Request.DOCUMENT_NO, formN, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -905,7 +905,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		return nil, errors.New("رقم المستند مستخدم بالفعل")
 	}
 
-	cancelledBillsReqSData, err := cancelBillReq.GetByCustKeyNotFormNo(*in.Request.CUSTKEY, formN)
+	cancelledBillsReqSData, err := cancelBillReq.GetByCustKeyNotFormNo(*in.Request.CUSTKEY, formN, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,9 +1010,12 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	if in.Request.DOCUMENT_NO != nil {
 		ReqDocNo = *in.Request.DOCUMENT_NO
 	}
+	if in.Request.ApplicationType == nil {
+		in.Request.ApplicationType = tools.Int32ToInt32Ptr(1)
+	}
 	reqsave := &dbmodels.CANCELLED_REQUEST{
 		FORM_NO:             ReqFormNo,
-		APPLICATION_TYPE_ID: in.Request.ApplicationType,
+		APPLICATION_TYPE_ID: *in.Request.ApplicationType,
 		CANCELLED:           tools.ToBoolPointer(false),
 		CUSTKEY:             ReqCUSTKEY,
 		STATION_NO:          ReqStationNo,
@@ -1029,7 +1032,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	}
 
 	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
-		nextFormNo, err := cancelBillReq.GetMax("FORM_NO")
+		nextFormNo, err := cancelBillReq.GetMax("FORM_NO", 1)
 		if err != nil {
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
@@ -1444,7 +1447,7 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 		log.Println("connected")
 	}
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	req, err := cancelbill.GetByFormNo(*in.FormNo)
+	req, err := cancelbill.GetByFormNo(*in.FormNo, 1)
 	if err != nil {
 		return nil, err
 	}

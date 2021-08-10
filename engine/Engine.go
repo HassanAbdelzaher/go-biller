@@ -102,7 +102,7 @@ func (e *Engine) GetBillsByFormNo(ctx context.Context, rq *billing.GetBillReques
 		conn.Debug = true
 	}
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	req, err := cancelbill.GetByFormNo(formno)
+	req, err := cancelbill.GetByFormNo(formno, 1)
 	if err != nil {
 		return nil, err
 	}

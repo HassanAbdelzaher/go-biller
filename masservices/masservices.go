@@ -236,6 +236,20 @@ func filterFirst(in interface{}, fn filterf) interface{} {
 	return out
 }
 
+func IsEnglish(str string) (bool, string) {
+	if strings.TrimSpace(str) == "" {
+		return false, ""
+	}
+	strr := strings.TrimSpace(str)
+	for idx := range strings.ToLower(strings.TrimSpace(str)) {
+		s := string(str[idx])
+		if !(s == "a" || s == "b" || s == "c" || s == "d" || s == "e" || s == "f" || s == "g" || s == "h" || s == "i" || s == "j" || s == "k" || s == "l" || s == "m" || s == "n" || s == "o" || s == "p" || s == "q" || s == "r" || s == "s" || s == "t" || s == "u" || s == "v" || s == "w" || s == "x" || s == "y" || s == "z" || s == "_" || s == " ") {
+			return false, ""
+		}
+	}
+	return true, strr
+}
+
 // Services
 // CancelledBillList implements
 func (s *serverCollection) CancelledBillList(ctx context.Context, in *pbMessages.CancelledBillListRequest) (rsp *pbMessages.CancelledBillListResponse, err error) {

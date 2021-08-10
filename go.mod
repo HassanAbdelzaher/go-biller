@@ -7,7 +7,7 @@ require (
 	github.com/MaisrForAdvancedSystems/biller-charger v1.90.0
 	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.131.0
 	github.com/MaisrForAdvancedSystems/go-biller-proto v1.73.0
-	github.com/MaisrForAdvancedSystems/mas-db-models v1.100.0
+	github.com/MaisrForAdvancedSystems/mas-db-models v1.101.0
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/protobuf v1.5.2

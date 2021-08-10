@@ -64,6 +64,8 @@ github.com/MaisrForAdvancedSystems/mas-db-models v1.99.0 h1:yWhtp59Lquc/oFkD9Wmi
 github.com/MaisrForAdvancedSystems/mas-db-models v1.99.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.100.0 h1:MCW8tb9UOWda4WJfPm0tNy0cM7AH/UxPdn6rzDPc/ko=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.100.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.101.0 h1:mnd9bOeJZoqZ5/PTvl3l9pAeHWJsDf29/hgr2xXYdBI=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.101.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

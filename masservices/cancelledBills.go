@@ -772,7 +772,7 @@ func billActionsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.B
 	}
 	var lucancelledBillsAction irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var lucancelledBillsActionData []*dbmodels.LU_CANCELLED_BILLS_ACTION
-	lucancelledBillsActionData, err = lucancelledBillsAction.GetAll()
+	lucancelledBillsActionData, err = lucancelledBillsAction.GetByApplicationTypeID(1)
 	if err != nil {
 		return nil, err
 	}
@@ -780,13 +780,14 @@ func billActionsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.B
 	for idx := range lucancelledBillsActionData {
 		lucancelledBillsActionDataUse := lucancelledBillsActionData[idx]
 		DataJ.Items = append(DataJ.Items, &pbdbMessages.LU_CANCELLED_BILL_ACTION{
-			ID:            &lucancelledBillsActionDataUse.ID,
-			DESCRIPTION:   lucancelledBillsActionDataUse.DESCRIPTION,
-			CURRENT_STATE: lucancelledBillsActionDataUse.CURRENT_STATE,
-			NEXT_STATE:    lucancelledBillsActionDataUse.NEXT_STATE,
-			CLOSED:        lucancelledBillsActionDataUse.CLOSED,
-			START_UP:      lucancelledBillsActionDataUse.START_UP,
-			DEPARTMENT:    lucancelledBillsActionDataUse.DEPARTMENT,
+			ID:              &lucancelledBillsActionDataUse.ID,
+			DESCRIPTION:     lucancelledBillsActionDataUse.DESCRIPTION,
+			CURRENT_STATE:   lucancelledBillsActionDataUse.CURRENT_STATE,
+			NEXT_STATE:      lucancelledBillsActionDataUse.NEXT_STATE,
+			CLOSED:          lucancelledBillsActionDataUse.CLOSED,
+			START_UP:        lucancelledBillsActionDataUse.START_UP,
+			DEPARTMENT:      lucancelledBillsActionDataUse.DEPARTMENT,
+			ApplicationType: lucancelledBillsActionDataUse.APPLICATION_TYPE_ID,
 		})
 	}
 	log.Println("End BillActions..")
@@ -815,7 +816,7 @@ func billStatesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.Bi
 		log.Println("connected")
 	}
 	var lucancelledStates irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	lucancelledStatesData, err := lucancelledStates.GetAll()
+	lucancelledStatesData, err := lucancelledStates.GetByApplicationTypeID(1)
 	if err != nil {
 		return nil, err
 	}
@@ -823,11 +824,12 @@ func billStatesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.Bi
 	for idx := range lucancelledStatesData {
 		lucancelledStatesDataUse := lucancelledStatesData[idx]
 		DataJ.Items = append(DataJ.Items, &pbdbMessages.LU_CANCELLED_BILL_STATE{
-			ID:          &lucancelledStatesDataUse.ID,
-			DESCRIPTION: lucancelledStatesDataUse.DESCRIPTION,
-			RECAL_READY: lucancelledStatesDataUse.RECAL_READY,
-			CANCELLED:   lucancelledStatesDataUse.CANCELLED,
-			EDITED:      lucancelledStatesDataUse.EDITED,
+			ID:              &lucancelledStatesDataUse.ID,
+			DESCRIPTION:     lucancelledStatesDataUse.DESCRIPTION,
+			RECAL_READY:     lucancelledStatesDataUse.RECAL_READY,
+			CANCELLED:       lucancelledStatesDataUse.CANCELLED,
+			EDITED:          lucancelledStatesDataUse.EDITED,
+			ApplicationType: lucancelledStatesDataUse.APPLICATION_TYPE_ID,
 		})
 	}
 	log.Println("End BillStates..")
@@ -1881,6 +1883,8 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 			return nil, err
 		}
 	}
+	// mapping For Fileds name
+	chechFields := make(map[string]*string)
 	// actions
 	for idx := range in.ApplicationTypes.Actions {
 		actionID = actionID + 1
@@ -1923,7 +1927,16 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 				if appActionField.Name == nil {
 					return nil, errors.New("لابد من ادخال الاسم")
 				}
-				appactionFieldData.NAME = *appActionField.Name
+				enn, namef := IsEnglish(*appActionField.Name)
+				if !enn {
+					return nil, errors.New("لابد من ان يكون الاسم بالانجليزيه")
+				}
+				_, ok := chechFields[namef]
+				if ok {
+					return nil, errors.New("لابد من ان يكون اسم الحقل غير مكرر")
+				}
+				chechFields[namef] = &namef
+				appactionFieldData.NAME = namef
 				appactionFieldData.SEQ = appActionField.Seq
 				appactionFieldData.TITLE = appActionField.Title
 				appactionFieldData.KIND = (*int32)(appActionField.Kind)
@@ -1985,6 +1998,15 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 			if appActionField.Name == nil {
 				return nil, errors.New("لابد من ادخال الاسم")
 			}
+			enn, namef := IsEnglish(*appActionField.Name)
+			if !enn {
+				return nil, errors.New("لابد من ان يكون الاسم بالانجليزيه")
+			}
+			_, ok := chechFields[namef]
+			if ok {
+				return nil, errors.New("لابد من ان يكون اسم الحقل غير مكرر")
+			}
+			chechFields[namef] = &namef
 			appactionFieldData.NAME = *appActionField.Name
 			appactionFieldData.SEQ = appActionField.Seq
 			appactionFieldData.TITLE = appActionField.Title

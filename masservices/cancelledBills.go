@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/MaisrForAdvancedSystems/go-biller-proto/go/dbmessages"
 	pbdbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/dbmessages"
 	pbMessages "github.com/MaisrForAdvancedSystems/go-biller-proto/go/messages"
 	"github.com/MaisrForAdvancedSystems/go-biller-proto/go/serverhostmessages"
@@ -875,12 +877,23 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	if in.Request.DOCUMENT_NO == nil || strings.TrimSpace(*in.Request.DOCUMENT_NO) == "" {
 		return nil, errors.New("رقم المستند غير صحيح")
 	}
+	if in.Request.ApplicationType == nil {
+		return nil, errors.New("نوع الطلب غير محدد")
+	}
 
 	var cancelBillReq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 
 	formN := int64(0)
 	if in.Request.FORM_NO != nil {
 		formN = *in.Request.FORM_NO
+	}
+	apptypeData, err := apptype.GetTypeByID(*in.Request.ApplicationType)
+	if err != nil {
+		return nil, err
+	}
+	if apptypeData == nil {
+		return nil, errors.New("نوع الطلب غير معرف")
 	}
 	cancelledBillsReqData, err := cancelBillReq.GetByCustKeyDocNoNotFormNo(*in.Request.CUSTKEY, *in.Request.DOCUMENT_NO, formN)
 	if err != nil {
@@ -996,19 +1009,21 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		ReqDocNo = *in.Request.DOCUMENT_NO
 	}
 	reqsave := &dbmodels.CANCELLED_REQUEST{
-		FORM_NO:      ReqFormNo,
-		CUSTKEY:      ReqCUSTKEY,
-		STATION_NO:   ReqStationNo,
-		DOCUMENT_NO:  ReqDocNo,
-		REQUEST_DATE: create_time(in.Request.REQUEST_DATE),
-		REQUEST_BY:   in.Request.REQUEST_BY,
-		STATE:        in.Request.STATE,
-		CLOSED:       in.Request.CLOSED,
-		STATUS:       in.Request.STATUS,
-		COMMENT:      in.Request.COMMENT,
-		COUNTER:      in.Request.COUNTER,
-		SURNAME:      in.Request.SURNAME,
-		STAMP_DATE:   create_time(in.Request.STAMP_DATE),
+		FORM_NO:             ReqFormNo,
+		APPLICATION_TYPE_ID: in.Request.ApplicationType,
+		CANCELLED:           tools.ToBoolPointer(false),
+		CUSTKEY:             ReqCUSTKEY,
+		STATION_NO:          ReqStationNo,
+		DOCUMENT_NO:         ReqDocNo,
+		REQUEST_DATE:        create_time(in.Request.REQUEST_DATE),
+		REQUEST_BY:          in.Request.REQUEST_BY,
+		STATE:               in.Request.STATE,
+		CLOSED:              in.Request.CLOSED,
+		STATUS:              in.Request.STATUS,
+		COMMENT:             in.Request.COMMENT,
+		COUNTER:             in.Request.COUNTER,
+		SURNAME:             in.Request.SURNAME,
+		STAMP_DATE:          create_time(in.Request.STAMP_DATE),
 	}
 
 	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
@@ -1074,7 +1089,7 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 	}
 	if reqsave.STATE == nil || *reqsave.STATE == 0 {
 		stateId := int32(0)
-		intiActData, err := intiActr.GetByStartUp(true)
+		intiActData, err := intiActr.GetByStartUp(true, *in.Request.ApplicationType)
 		if err != nil {
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
@@ -1223,6 +1238,11 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 	}
+
+	// Add Entries
+	// for k, v := range in.Request.Entries {
+
+	// }
 	err = dbr.Commit()
 	if err != nil {
 		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
@@ -1478,6 +1498,537 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 		usj := &serverhostmessages.OldNewItem{OldItem: usjOld, NewItem: usjNew}
 		DataJ.Items = append(DataJ.Items, usj)
 	}
+	log.Println("end ..")
+	return DataJ, nil
+}
+func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.ApplicationTypesRs, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	apptypesData, err := apptype.GetAllTypes()
+	if err != nil {
+		return nil, err
+	}
+	DataJ := &pbMessages.ApplicationTypesRs{}
+	var appStates irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var appActions irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	for idx := range apptypesData {
+		applicationtypeUse := apptypesData[idx]
+		Usj := &dbmessages.ApplicationType{}
+		Usj.Id = &applicationtypeUse.ID
+		Usj.Description = applicationtypeUse.DESCRIPTION
+		Usj.Seq = applicationtypeUse.SEQ
+		appStatesData, err := appStates.GetByApplicationTypeID(applicationtypeUse.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxState := range appStatesData {
+			appStateUse := appStatesData[idxState]
+			Usj.States = append(Usj.States, &pbdbMessages.LU_CANCELLED_BILL_STATE{
+				ID:              &appStateUse.ID,
+				DESCRIPTION:     appStateUse.DESCRIPTION,
+				RECAL_READY:     appStateUse.RECAL_READY,
+				CANCELLED:       appStateUse.CANCELLED,
+				EDITED:          appStateUse.EDITED,
+				ApplicationType: appStateUse.APPLICATION_TYPE_ID,
+			})
+		}
+		appActionsData, err := appActions.GetByApplicationTypeID(applicationtypeUse.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxAction := range appActionsData {
+			appActionUse := appActionsData[idxAction]
+			UsjAction := &pbdbMessages.LU_CANCELLED_BILL_ACTION{
+				ID:              &appActionUse.ID,
+				DESCRIPTION:     appActionUse.DESCRIPTION,
+				CURRENT_STATE:   appActionUse.CURRENT_STATE,
+				NEXT_STATE:      appActionUse.NEXT_STATE,
+				CLOSED:          appActionUse.CLOSED,
+				START_UP:        appActionUse.START_UP,
+				ApplicationType: appActionUse.APPLICATION_TYPE_ID,
+			}
+			// Action Fields
+			fieldGroupActionData, err := apptype.GetAllGroupFieldsByActionID(appActionUse.ID)
+			if err != nil {
+				return nil, err
+			}
+			for idxFieldGroup := range fieldGroupActionData {
+				fieldGroupUse := fieldGroupActionData[idxFieldGroup]
+				UsjFieldGroup := &pbdbMessages.FieldGroup{
+					Title: fieldGroupUse.TITLE,
+					Seq:   fieldGroupUse.SEQ,
+				}
+				fieldActionData, err := apptype.GetAllFieldsByGroupID(fieldGroupUse.ID)
+				if err != nil {
+					return nil, err
+				}
+				for idxField := range fieldActionData {
+					fieldUse := fieldActionData[idxField]
+					var fieldType pbdbMessages.DataType
+					fieldType = pbdbMessages.DataType(fieldUse.DATA_TYPE)
+					var fieldKind pbdbMessages.FieldKind
+					fieldKind = pbdbMessages.FieldKind(*fieldUse.KIND)
+					UsjField := &pbdbMessages.Field{
+						Title:      fieldUse.TITLE,
+						Seq:        fieldUse.SEQ,
+						Name:       &fieldUse.NAME,
+						IsRequired: fieldUse.IS_REQUIRED,
+						Format:     fieldUse.FORMAT,
+						DataType:   &fieldType,
+						Kind:       &fieldKind,
+					}
+					fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
+					if err != nil {
+						return nil, err
+					}
+					if len(fieldValueData) > 0 {
+						listVal := &pbdbMessages.ListValues{}
+						for idxVal := range fieldValueData {
+							valUse := fieldValueData[idxVal]
+							listVal.ListValues = append(listVal.ListValues, &pbdbMessages.ListValue{
+								Key:   &valUse.KEY_SOURCE,
+								Value: &valUse.VALUE_SOURCE,
+							})
+						}
+						UsjField.ListValues = listVal
+					}
+					UsjFieldGroup.Fields = append(UsjFieldGroup.Fields, UsjField)
+				}
+				UsjAction.Fields = append(UsjAction.Fields, UsjFieldGroup)
+			}
+			Usj.Actions = append(Usj.Actions, UsjAction)
+		}
+		// ApplicationType Fields
+		fieldGroupAppTypeData, err := apptype.GetAllGroupFieldsByActionID(applicationtypeUse.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxFieldGroup := range fieldGroupAppTypeData {
+			fieldGroupUse := fieldGroupAppTypeData[idxFieldGroup]
+			UsjFieldGroup := &pbdbMessages.FieldGroup{
+				Title: fieldGroupUse.TITLE,
+				Seq:   fieldGroupUse.SEQ,
+			}
+			fieldActionData, err := apptype.GetAllFieldsByGroupID(fieldGroupUse.ID)
+			if err != nil {
+				return nil, err
+			}
+			for idxField := range fieldActionData {
+				fieldUse := fieldActionData[idxField]
+				var fieldType pbdbMessages.DataType
+				fieldType = pbdbMessages.DataType(fieldUse.DATA_TYPE)
+				var fieldKind pbdbMessages.FieldKind
+				fieldKind = pbdbMessages.FieldKind(*fieldUse.KIND)
+				UsjField := &pbdbMessages.Field{
+					Title:      fieldUse.TITLE,
+					Seq:        fieldUse.SEQ,
+					Name:       &fieldUse.NAME,
+					IsRequired: fieldUse.IS_REQUIRED,
+					Format:     fieldUse.FORMAT,
+					DataType:   &fieldType,
+					Kind:       &fieldKind,
+				}
+				fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
+				if err != nil {
+					return nil, err
+				}
+				if len(fieldValueData) > 0 {
+					listVal := &pbdbMessages.ListValues{}
+					for idxVal := range fieldValueData {
+						valUse := fieldValueData[idxVal]
+						listVal.ListValues = append(listVal.ListValues, &pbdbMessages.ListValue{
+							Key:   &valUse.KEY_SOURCE,
+							Value: &valUse.VALUE_SOURCE,
+						})
+					}
+					UsjField.ListValues = listVal
+				}
+				UsjFieldGroup.Fields = append(UsjFieldGroup.Fields, UsjField)
+			}
+			Usj.Fields = append(Usj.Fields, UsjFieldGroup)
+		}
+		DataJ.ApplicationTypes = append(DataJ.ApplicationTypes, Usj)
+	}
+	log.Println("end ..")
+	return DataJ, nil
+}
+func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTypeRequest) (rsp *pbMessages.SaveBillCancelRequestResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	if in.ApplicationTypes == nil || in.ApplicationTypes.Id == nil {
+		return nil, errors.New("لابد من ارسال بيانات لنوع الطلب")
+	}
+	if in.ApplicationTypes.Id == nil {
+		return nil, errors.New("لابد من ارسال بيانات لنوع الطلب")
+	}
+	if len(in.ApplicationTypes.Actions) <= 0 {
+		return nil, errors.New("لابد من وجود اجراء واحد علي الاقل")
+	}
+	if len(in.ApplicationTypes.States) <= 0 {
+		return nil, errors.New("لابد من وجود مرحله واحده علي الاقل")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	dbr, err := conn.Begin()
+	if err != nil {
+		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
+	}
+	defer dbr.Rollback()
+	var appreq irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var appActions irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var appStates irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+
+	// Add Or Save Application Type
+	apptypeData, err := apptype.GetTypeByID(*in.ApplicationTypes.Id)
+	if err != nil {
+		return nil, err
+	}
+	adding := true
+	if apptypeData == nil {
+		apptypeData = &dbmodels.APPLICATION_TYPES{}
+	} else {
+		adding = false
+	}
+	apptypeData.DESCRIPTION = in.ApplicationTypes.Description
+	apptypeData.SEQ = in.ApplicationTypes.Seq
+	if in.ApplicationTypes.Icon != nil {
+		imag := []byte(*in.ApplicationTypes.Icon)
+		apptypeData.ICON = &imag
+	} else {
+		apptypeData.ICON = nil
+	}
+	if !adding {
+		// Check old Req
+		oldReq, err := appreq.GetCountByApplicationTypeID(apptypeData.ID)
+		if err != nil {
+			return nil, err
+		}
+		if oldReq > 0 {
+			return nil, errors.New("يوجد طلبات لهذا النوع لا يمكن التعديل")
+		}
+		err = dbr.Save(apptypeData)
+		if err != nil {
+			return nil, err
+		}
+		// delete All Group Fields & Fields & States & Actoins
+		// Delete All Old States
+		oldAppState, err := appStates.GetByApplicationTypeID(apptypeData.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idx := range oldAppState {
+			oldappState := oldAppState[idx]
+			err = dbr.Delete(oldappState)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Delete All Old Actions
+		oldAppAction, err := appActions.GetByApplicationTypeID(apptypeData.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idx := range oldAppAction {
+			oldappAction := oldAppAction[idx]
+			// Delete All Old fields Group
+			oldAppGroups, err := apptype.GetAllGroupFieldsByActionID(oldappAction.ID)
+			if err != nil {
+				return nil, err
+			}
+			for idxv := range oldAppGroups {
+				oldappGroup := oldAppGroups[idxv]
+				// Delete All Old fields
+				oldAppFields, err := apptype.GetAllFieldsByGroupID(oldappGroup.ID)
+				if err != nil {
+					return nil, err
+				}
+				for idxf := range oldAppFields {
+					oldappField := oldAppFields[idxf]
+					// Delete All Old list values
+					oldAppListVal, err := apptype.GetAllListValuesByFieldID(oldappField.ID)
+					if err != nil {
+						return nil, err
+					}
+					for idxval := range oldAppListVal {
+						oldappList := oldAppListVal[idxval]
+						err = dbr.Delete(oldappList)
+						if err != nil {
+							return nil, err
+						}
+					}
+					err = dbr.Delete(oldappField)
+					if err != nil {
+						return nil, err
+					}
+				}
+				err = dbr.Delete(oldappGroup)
+				if err != nil {
+					return nil, err
+				}
+			}
+			err = dbr.Delete(oldappAction)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Fields Application Type
+		// Delete All Old fields Group
+		oldTypeGroups, err := apptype.GetAllGroupFieldsByActionID(apptypeData.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxv := range oldTypeGroups {
+			oldTypeGroup := oldTypeGroups[idxv]
+			// Delete All Old fields
+			oldTypeFields, err := apptype.GetAllFieldsByGroupID(oldTypeGroup.ID)
+			if err != nil {
+				return nil, err
+			}
+			for idxf := range oldTypeFields {
+				oldTypeField := oldTypeFields[idxf]
+				// Delete All Old list values
+				oldTypeListVal, err := apptype.GetAllListValuesByFieldID(oldTypeField.ID)
+				if err != nil {
+					return nil, err
+				}
+				for idxval := range oldTypeListVal {
+					oldTypeList := oldTypeListVal[idxval]
+					err = dbr.Delete(oldTypeList)
+					if err != nil {
+						return nil, err
+					}
+				}
+				err = dbr.Delete(oldTypeField)
+				if err != nil {
+					return nil, err
+				}
+			}
+			err = dbr.Delete(oldTypeGroup)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		typeID, err := apptype.GetMaxTypeID()
+		if err != nil {
+			return nil, err
+		}
+		apptypeData.ID = typeID + 1
+		err = dbr.Add(apptypeData)
+		if err != nil {
+			return nil, err
+		}
+	}
+	i, err := strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + "0000")
+	if err != nil {
+		return nil, err
+	}
+	actionID := int32(i)
+	stateID := int32(i)
+	groupID := int32(i)
+	fieldID := int32(i)
+	valID := int32(i)
+	// states
+	for idx := range in.ApplicationTypes.States {
+		stateID = stateID + 1
+		appState := in.ApplicationTypes.States[idx]
+		appstateData := &dbmodels.LU_CANCELLED_BILL_STATE{}
+		appstateData.APPLICATION_TYPE_ID = &apptypeData.ID
+		appstateData.CANCELLED = appState.CANCELLED
+		appstateData.DESCRIPTION = appState.DESCRIPTION
+		appstateData.EDITED = appState.EDITED
+		appstateData.RECAL_READY = appState.RECAL_READY
+		appstateData.ID = stateID
+		err = dbr.Add(appstateData)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// actions
+	for idx := range in.ApplicationTypes.Actions {
+		actionID = actionID + 1
+		appAction := in.ApplicationTypes.Actions[idx]
+		appactionData := &dbmodels.LU_CANCELLED_BILLS_ACTION{}
+		appactionData.APPLICATION_TYPE_ID = &apptypeData.ID
+		appactionData.DESCRIPTION = appAction.DESCRIPTION
+		appactionData.CLOSED = appAction.CLOSED
+		appactionData.CURRENT_STATE = appAction.CURRENT_STATE
+		appactionData.NEXT_STATE = appAction.NEXT_STATE
+		appactionData.DEPARTMENT = appAction.DEPARTMENT
+		appactionData.START_UP = appAction.START_UP
+		appactionData.ID = actionID
+		err = dbr.Add(appactionData)
+		if err != nil {
+			return nil, err
+		}
+		// fields Group
+		for idxgroup := range appAction.Fields {
+			groupID = groupID + 1
+			appActionGroup := appAction.Fields[idxgroup]
+			appactionGroupData := &dbmodels.FIELD_GROUPS{}
+			appactionGroupData.APPLICATION_TYPE_ID = &apptypeData.ID
+			appactionGroupData.LU_ACTIONS_ID = &appactionData.ID
+			appactionGroupData.SEQ = appActionGroup.Seq
+			appactionGroupData.TITLE = appActionGroup.Title
+			appactionGroupData.ID = groupID
+			err = dbr.Add(appactionGroupData)
+			if err != nil {
+				return nil, err
+			}
+			// fields
+			for idxfield := range appActionGroup.Fields {
+				fieldID = fieldID + 1
+				appActionField := appActionGroup.Fields[idxfield]
+				appactionFieldData := &dbmodels.FIELDS{}
+				appactionFieldData.FIELD_GROUP_ID = appactionGroupData.ID
+				appactionFieldData.FORMAT = appActionField.Format
+				appactionFieldData.IS_REQUIRED = appActionField.IsRequired
+				if appActionField.Name == nil {
+					return nil, errors.New("لابد من ادخال الاسم")
+				}
+				appactionFieldData.NAME = *appActionField.Name
+				appactionFieldData.SEQ = appActionField.Seq
+				appactionFieldData.TITLE = appActionField.Title
+				appactionFieldData.KIND = (*int32)(appActionField.Kind)
+				if appActionField.DataType == nil {
+					return nil, errors.New("لابد من ادخال النوع")
+				}
+				appactionFieldData.DATA_TYPE = int32(*appActionField.DataType)
+				appactionFieldData.ID = fieldID
+				err = dbr.Add(appactionFieldData)
+				if err != nil {
+					return nil, err
+				}
+				// List Values
+				if appActionField.ListValues != nil {
+					for idxval := range appActionField.ListValues.ListValues {
+						valID = valID + 1
+						listval := appActionField.ListValues.ListValues[idxval]
+						appVallistData := &dbmodels.FIELD_VALUES{}
+						appVallistData.FIELD_ID = appactionFieldData.ID
+						if listval.Key == nil {
+							return nil, errors.New("لابد من ادخال مميز القائمه")
+						}
+						appVallistData.KEY_SOURCE = *listval.Key
+						if listval.Value == nil {
+							return nil, errors.New("لابد من ادخال قيمه القائمه")
+						}
+						appVallistData.VALUE_SOURCE = *listval.Value
+						appVallistData.ID = valID
+						err = dbr.Add(appVallistData)
+						if err != nil {
+							return nil, err
+						}
+					}
+				}
+			}
+		}
+	}
+	// Fields
+	for idxgroup := range in.ApplicationTypes.Fields {
+		groupID = groupID + 1
+		appActionGroup := in.ApplicationTypes.Fields[idxgroup]
+		appactionGroupData := &dbmodels.FIELD_GROUPS{}
+		appactionGroupData.APPLICATION_TYPE_ID = &apptypeData.ID
+		appactionGroupData.SEQ = appActionGroup.Seq
+		appactionGroupData.TITLE = appActionGroup.Title
+		appactionGroupData.ID = groupID
+		err = dbr.Add(appactionGroupData)
+		if err != nil {
+			return nil, err
+		}
+		// fields
+		for idxfield := range appActionGroup.Fields {
+			fieldID = fieldID + 1
+			appActionField := appActionGroup.Fields[idxfield]
+			appactionFieldData := &dbmodels.FIELDS{}
+			appactionFieldData.FIELD_GROUP_ID = appactionGroupData.ID
+			appactionFieldData.FORMAT = appActionField.Format
+			appactionFieldData.IS_REQUIRED = appActionField.IsRequired
+			if appActionField.Name == nil {
+				return nil, errors.New("لابد من ادخال الاسم")
+			}
+			appactionFieldData.NAME = *appActionField.Name
+			appactionFieldData.SEQ = appActionField.Seq
+			appactionFieldData.TITLE = appActionField.Title
+			appactionFieldData.KIND = (*int32)(appActionField.Kind)
+			if appActionField.DataType == nil {
+				return nil, errors.New("لابد من ادخال النوع")
+			}
+			appactionFieldData.DATA_TYPE = int32(*appActionField.DataType)
+			appactionFieldData.ID = fieldID
+			err = dbr.Add(appactionFieldData)
+			if err != nil {
+				return nil, err
+			}
+			// List Values
+			if appActionField.ListValues != nil {
+				for idxval := range appActionField.ListValues.ListValues {
+					valID = valID + 1
+					listval := appActionField.ListValues.ListValues[idxval]
+					appVallistData := &dbmodels.FIELD_VALUES{}
+					appVallistData.FIELD_ID = appactionFieldData.ID
+					if listval.Key == nil {
+						return nil, errors.New("لابد من ادخال مميز القائمه")
+					}
+					appVallistData.KEY_SOURCE = *listval.Key
+					if listval.Value == nil {
+						return nil, errors.New("لابد من ادخال قيمه القائمه")
+					}
+					appVallistData.VALUE_SOURCE = *listval.Value
+					appVallistData.ID = valID
+					err = dbr.Add(appVallistData)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+	err = dbr.Commit()
+	if err != nil {
+		return nil, err
+	}
+	DataJ := &pbMessages.SaveBillCancelRequestResponse{}
+	DataJ.Message = tools.ToStringPointer("تم حفظ نوع الطلب")
+	DataJ.SaveId = tools.Int32PtrToInt64Ptr(&apptypeData.ID)
 	log.Println("end ..")
 	return DataJ, nil
 }

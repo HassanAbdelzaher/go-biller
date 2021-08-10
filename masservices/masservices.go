@@ -401,3 +401,33 @@ func (s *serverCollection) GetFormNoPayments(ctx context.Context, in *pbMessages
 	}
 	return Data, nil
 }
+
+// GetApplicationTypes implements
+func (s *serverCollection) GetApplicationTypes(ctx context.Context, in *pbMessages.Empty) (rsp *pbMessages.ApplicationTypesRs, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... GetApplicationTypes ....")
+	Data, err := getApplicationTypesP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}
+
+// SaveApplicationType implements
+func (s *serverCollection) SaveApplicationType(ctx context.Context, in *pbMessages.SaveApplicationTypeRequest) (rsp *pbMessages.SaveBillCancelRequestResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at SaveBillCancelRequest %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... SaveApplicationType ....")
+	Data, err := saveApplicationTypeP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}

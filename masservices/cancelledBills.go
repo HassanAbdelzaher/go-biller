@@ -1624,12 +1624,15 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 			Usj.Actions = append(Usj.Actions, UsjAction)
 		}
 		// ApplicationType Fields
-		fieldGroupAppTypeData, err := apptype.GetAllGroupFieldsByActionID(applicationtypeUse.ID)
+		fieldGroupAppTypeData, err := apptype.GetAllGroupFieldsByApplicationTypeID(applicationtypeUse.ID)
 		if err != nil {
 			return nil, err
 		}
 		for idxFieldGroup := range fieldGroupAppTypeData {
 			fieldGroupUse := fieldGroupAppTypeData[idxFieldGroup]
+			if fieldGroupUse.LU_ACTIONS_ID != nil {
+				continue
+			}
 			UsjFieldGroup := &pbdbMessages.FieldGroup{
 				Title: fieldGroupUse.TITLE,
 				Seq:   fieldGroupUse.SEQ,
@@ -1815,12 +1818,15 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 		}
 		// Fields Application Type
 		// Delete All Old fields Group
-		oldTypeGroups, err := apptype.GetAllGroupFieldsByActionID(apptypeData.ID)
+		oldTypeGroups, err := apptype.GetAllGroupFieldsByApplicationTypeID(apptypeData.ID)
 		if err != nil {
 			return nil, err
 		}
 		for idxv := range oldTypeGroups {
 			oldTypeGroup := oldTypeGroups[idxv]
+			if oldTypeGroup.LU_ACTIONS_ID != nil {
+				continue
+			}
 			// Delete All Old fields
 			oldTypeFields, err := apptype.GetAllFieldsByGroupID(oldTypeGroup.ID)
 			if err != nil {

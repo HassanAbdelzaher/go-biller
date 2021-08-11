@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -314,4 +315,36 @@ func getPayment(paymentNo *string, custKey *string, skipBracodTrim *bool, forQue
 	}
 	log.Println("End Payment ..", *paymentNo)
 	return DataJ, nil
+}
+
+// ActStates Fro Flow
+type ActStates struct {
+	From_State int32
+	To_State   int32
+}
+
+//recursiveFlow : For Sure Flow
+func recursiveFlow(voutf *[]*int32, valllist []*ActStates, vfilter []*ActStates) bool {
+
+	for i := 0; i < len(vfilter); i++ {
+		current := vfilter[i].From_State
+		inn := Exists(*voutf, func(val interface{}) bool {
+			return *(val.(*int32)) == current
+		})
+		if inn {
+			continue
+		}
+		*voutf = append(*voutf, &current)
+		filltp := []*ActStates{}
+		fillt := Filter(valllist, func(val interface{}) bool {
+			return (val.(*ActStates)).To_State == current
+		})
+		val := reflect.ValueOf(fillt)
+		for j := 0; j < val.Len(); j++ {
+			incurrent := (reflect.ValueOf(reflect.Indirect(val.Index(j)).Interface())).Interface().(*ActStates)
+			filltp = append(filltp, incurrent)
+		}
+		recursiveFlow(voutf, valllist, filltp)
+	}
+	return true
 }

@@ -236,6 +236,37 @@ func filterFirst(in interface{}, fn filterf) interface{} {
 	return out
 }
 
+//Filter For Arrays
+func Filter(in interface{}, fn filterf) interface{} {
+	val := reflect.ValueOf(in)
+	out := make([]interface{}, 0, val.Len())
+
+	for i := 0; i < val.Len(); i++ {
+		current := val.Index(i).Interface()
+
+		if fn(current) {
+			out = append(out, current)
+		}
+	}
+
+	return out
+}
+
+//Exists For Arrays
+func Exists(in interface{}, fn filterf) bool {
+	val := reflect.ValueOf(in)
+
+	for i := 0; i < val.Len(); i++ {
+		current := val.Index(i).Interface()
+
+		if fn(current) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func IsEnglish(str string) (bool, string) {
 	if strings.TrimSpace(str) == "" {
 		return false, ""

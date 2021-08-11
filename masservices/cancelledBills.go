@@ -1876,6 +1876,115 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 	groupID := int32(i)
 	fieldID := int32(i)
 	valID := int32(i)
+	// Check Validation
+	mapStates := make(map[int32]int32)
+	closedOne := false
+	startOne := false
+	firstState := int32(0)
+	lastState := int32(0)
+	allActionState := []*ActStates{}
+	for idx := range in.ApplicationTypes.Actions {
+		act := in.ApplicationTypes.Actions[idx]
+		if act.CURRENT_STATE == nil {
+			return nil, errors.New("لابد من تحديد المرحله الحاليه للاجراء")
+		}
+		if act.NEXT_STATE == nil {
+			return nil, errors.New("لابد من تحديد المرحله التاليه للاجراء")
+		}
+		if *act.CURRENT_STATE == *act.NEXT_STATE {
+			return nil, errors.New("لا يمكن ان يكون المرحله الحاليه والتاليه متساوي للاجراء")
+		}
+		if act.CLOSED != nil && *act.CLOSED {
+			if closedOne {
+				return nil, errors.New("لابد من وجود اجراء واحد لاغلاق الطلب")
+			}
+			lastState = *act.NEXT_STATE
+			closedOne = true
+		}
+		if act.START_UP != nil && *act.START_UP {
+			if startOne {
+				return nil, errors.New("لابد من وجود اجراء واحد لبداية الطلب")
+			}
+			firstState = *act.CURRENT_STATE
+			startOne = true
+		}
+		mapStates[*act.CURRENT_STATE] = *act.CURRENT_STATE
+		mapStates[*act.NEXT_STATE] = *act.NEXT_STATE
+		actState := &ActStates{From_State: *act.CURRENT_STATE, To_State: *act.NEXT_STATE}
+		extact := Exists(allActionState, func(val interface{}) bool {
+			return (val.(*ActStates)).From_State == actState.From_State && (val.(*ActStates)).To_State == actState.To_State
+		})
+		if extact {
+			return nil, errors.New("يوجد تكرار في الاجراءات")
+		}
+		allActionState = append(allActionState, actState)
+	}
+	if len(mapStates) != len(in.ApplicationTypes.States) {
+		return nil, errors.New("يوجد مراحل غير مستخدمه في الاجراءات")
+	}
+	if !closedOne {
+		return nil, errors.New("لابد من وجود اجراء لاغلاق الطلب")
+	}
+	if !startOne {
+		return nil, errors.New("لابد من وجود اجراء لبداية الطلب")
+	}
+	firstnodes := []*ActStates{}
+	fnode := ActStates{From_State: firstState}
+	firstnodes = append(firstnodes, &fnode)
+	outf := []*int32{}
+	recursiveFlow(&outf, allActionState, firstnodes)
+	allfrom := []int32{}
+	allfromdone := []int32{firstState, lastState}
+	alltodone := []int32{firstState, lastState}
+	for _, vbc := range allActionState {
+		extactvbc := Exists(allfrom, func(val interface{}) bool {
+			return (val.(int32)) == vbc.From_State
+		})
+		if !extactvbc {
+			allfrom = append(allfrom, vbc.From_State)
+		}
+
+		extactvbc = Exists(allfromdone, func(val interface{}) bool {
+			return (val.(int32)) == vbc.From_State
+		})
+		if !extactvbc {
+			allfromdone = append(allfromdone, vbc.From_State)
+		}
+
+		extactvbc = Exists(allfrom, func(val interface{}) bool {
+			return (val.(int32)) == vbc.To_State
+		})
+		if !extactvbc {
+			allfrom = append(allfrom, vbc.To_State)
+		}
+
+		extactvbc = Exists(alltodone, func(val interface{}) bool {
+			return (val.(int32)) == vbc.To_State
+		})
+		if !extactvbc {
+			alltodone = append(alltodone, vbc.To_State)
+		}
+	}
+	if len(allfrom) <= 2 {
+		return nil, errors.New("اجراءات العمل غير صحيحه")
+	}
+	if len(outf) < len(allfrom) {
+		return nil, errors.New("اجراءات العمل غير صحيحه")
+	}
+	for _, cv := range outf {
+		extactvbc := Exists(alltodone, func(val interface{}) bool {
+			return (val.(int32)) == *cv
+		})
+		if !extactvbc {
+			return nil, errors.New("اجراءات العمل غير صحيحه")
+		}
+		extactvbc = Exists(allfromdone, func(val interface{}) bool {
+			return (val.(int32)) == *cv
+		})
+		if !extactvbc {
+			return nil, errors.New("اجراءات العمل غير صحيحه")
+		}
+	}
 	// states
 	for idx := range in.ApplicationTypes.States {
 		stateID = stateID + 1

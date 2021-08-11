@@ -1705,6 +1705,7 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 	if len(in.ApplicationTypes.States) <= 0 {
 		return nil, errors.New("لابد من وجود مرحله واحده علي الاقل")
 	}
+
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
@@ -1867,15 +1868,6 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 			return nil, err
 		}
 	}
-	i, err := strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + "0000")
-	if err != nil {
-		return nil, err
-	}
-	actionID := int32(i)
-	stateID := int32(i)
-	groupID := int32(i)
-	fieldID := int32(i)
-	valID := int32(i)
 	// Check Validation
 	mapStates := make(map[int32]int32)
 	closedOne := false
@@ -1883,6 +1875,40 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 	firstState := int32(0)
 	lastState := int32(0)
 	allActionState := []*ActStates{}
+	mapRepeatedState := make(map[int32]int32)
+	for idx := range in.ApplicationTypes.States {
+		sta := in.ApplicationTypes.States[idx]
+		if sta.ID == nil || *sta.ID <= 0 {
+			return nil, errors.New("لابد من تحديد رقم المرحلة")
+		}
+		stateID := 0
+		if *sta.ID >= 1 && *sta.ID <= 9 {
+			stateID, err = strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + "00" + *tools.Int32ToString(sta.ID))
+			if err != nil {
+				return nil, err
+			}
+		} else if *sta.ID >= 10 && *sta.ID <= 99 {
+			stateID, err = strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + "0" + *tools.Int32ToString(sta.ID))
+			if err != nil {
+				return nil, err
+			}
+		} else if *sta.ID >= 100 && *sta.ID <= 999 {
+			stateID, err = strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + *tools.Int32ToString(sta.ID))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, errors.New("لابد من تحديد رقم المرحلة اقل  من 1000")
+		}
+
+		_, ok := mapRepeatedState[*sta.ID]
+		if ok {
+			return nil, errors.New("رقم المرحله مكرر")
+		} else {
+			mapRepeatedState[*sta.ID] = int32(stateID)
+		}
+		sta.ID = tools.Int32ToInt32Ptr(int32(stateID))
+	}
 	for idx := range in.ApplicationTypes.Actions {
 		act := in.ApplicationTypes.Actions[idx]
 		if act.CURRENT_STATE == nil {
@@ -1890,6 +1916,9 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 		}
 		if act.NEXT_STATE == nil {
 			return nil, errors.New("لابد من تحديد المرحله التاليه للاجراء")
+		}
+		if act.START_UP == nil {
+			return nil, errors.New("لابد من تحديد هل الاجراء بدايه ام لا")
 		}
 		if *act.CURRENT_STATE == *act.NEXT_STATE {
 			return nil, errors.New("لا يمكن ان يكون المرحله الحاليه والتاليه متساوي للاجراء")
@@ -1908,8 +1937,18 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 			firstState = *act.CURRENT_STATE
 			startOne = true
 		}
-		mapStates[*act.CURRENT_STATE] = *act.CURRENT_STATE
-		mapStates[*act.NEXT_STATE] = *act.NEXT_STATE
+		currentState, ok := mapRepeatedState[*act.CURRENT_STATE]
+		if !ok {
+			return nil, errors.New("رقم المرحله غير معرف")
+		}
+		nextState, ok := mapRepeatedState[*act.NEXT_STATE]
+		if !ok {
+			return nil, errors.New("رقم المرحله غير معرف")
+		}
+		mapStates[*act.CURRENT_STATE] = currentState
+		mapStates[*act.NEXT_STATE] = nextState
+		act.CURRENT_STATE = &currentState
+		act.NEXT_STATE = &nextState
 		actState := &ActStates{From_State: *act.CURRENT_STATE, To_State: *act.NEXT_STATE}
 		extact := Exists(allActionState, func(val interface{}) bool {
 			return (val.(*ActStates)).From_State == actState.From_State && (val.(*ActStates)).To_State == actState.To_State
@@ -1985,9 +2024,17 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 			return nil, errors.New("اجراءات العمل غير صحيحه")
 		}
 	}
+	i, err := strconv.Atoi(*tools.Int32ToString(&apptypeData.ID) + "0000")
+	if err != nil {
+		return nil, err
+	}
+	actionID := int32(i)
+	//stateID := int32(i)
+	groupID := int32(i)
+	fieldID := int32(i)
+	valID := int32(i)
 	// states
 	for idx := range in.ApplicationTypes.States {
-		stateID = stateID + 1
 		appState := in.ApplicationTypes.States[idx]
 		appstateData := &dbmodels.LU_CANCELLED_BILL_STATE{}
 		appstateData.APPLICATION_TYPE_ID = &apptypeData.ID
@@ -1995,7 +2042,7 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 		appstateData.DESCRIPTION = appState.DESCRIPTION
 		appstateData.EDITED = appState.EDITED
 		appstateData.RECAL_READY = appState.RECAL_READY
-		appstateData.ID = stateID
+		appstateData.ID = *appState.ID
 		err = dbr.Add(appstateData)
 		if err != nil {
 			return nil, err

@@ -50,8 +50,8 @@ github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0/go.mod h1:3AabUgir9R3
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.73.0 h1:dVdzX5tw8ldfO2oX/0Jz7HrJxBMHAp41TMetrdLho2I=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.73.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
-github.com/MaisrForAdvancedSystems/mas-db-models v1.102.0 h1:sgBmOWAsLA4Yfn5qCRIODU8BgFqDI6pQ97Jqn6HPB0A=
-github.com/MaisrForAdvancedSystems/mas-db-models v1.102.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.103.0 h1:CwWHahwx8XB8zxIIDaGeWM+RtJRrZxNrH+I/AFNnCjU=
+github.com/MaisrForAdvancedSystems/mas-db-models v1.103.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=

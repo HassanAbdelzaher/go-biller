@@ -272,8 +272,9 @@ func IsEnglish(str string) (bool, string) {
 		return false, ""
 	}
 	strr := strings.TrimSpace(str)
-	for idx := range strings.ToLower(strings.TrimSpace(str)) {
-		s := string(str[idx])
+	strew := strings.ToLower(strr)
+	for idx := range strew {
+		s := string(strew[idx])
 		if !(s == "a" || s == "b" || s == "c" || s == "d" || s == "e" || s == "f" || s == "g" || s == "h" || s == "i" || s == "j" || s == "k" || s == "l" || s == "m" || s == "n" || s == "o" || s == "p" || s == "q" || s == "r" || s == "s" || s == "t" || s == "u" || s == "v" || s == "w" || s == "x" || s == "y" || s == "z" || s == "_" || s == " ") {
 			return false, ""
 		}

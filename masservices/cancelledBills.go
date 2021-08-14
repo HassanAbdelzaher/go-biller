@@ -1293,6 +1293,9 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 
 	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var req irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var luActions irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var luStates irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	//var actionsValues irespo.iapp = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 
 	formN := int64(0)
 	if in.Request.FORM_NO != nil {
@@ -1312,6 +1315,10 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 	}
 	defer dbr.Rollback()
 	//defer dbr.Close()
+	lastState := int32(0)
+	nextState := int32(0)
+	actionID := int32(0)
+	adding := true
 	reqsave := &dbmodels.CANCELLED_REQUEST{}
 	if formN > 0 {
 		reqData, err := req.GetByFormNo(formN, *in.Request.ApplicationType)
@@ -1323,10 +1330,33 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 		} else {
 			return nil, errors.New("لا يوجد طلب بهذا الرقم")
 		}
+		if reqsave.STATE == nil {
+			return nil, errors.New("لا يوجد مرحله حاليه للطلب")
+		}
+		if in.Request.STATE == nil {
+			return nil, errors.New("لا يوجد مرحله تاليه للطلب")
+		}
+		lastState = *reqsave.STATE
+		nextState = *in.Request.STATE
+		luActionData, err := luActions.GetByCurrentNextApplicationTypeID(lastState, nextState, reqsave.APPLICATION_TYPE_ID)
+		if err != nil {
+			return nil, err
+		}
+		if len(luActionData) == 0 {
+			return nil, errors.New("لم يتم تحديد بدايه مرحله الطلب")
+		}
+		if luActionData[0].NEXT_STATE == nil {
+			return nil, errors.New("لم يتم تحديد الاجراء التالي للطلب")
+		}
+		if luActionData[0].CURRENT_STATE == nil {
+			return nil, errors.New("لم يتم تحديد بدايه اجراء الطلب")
+		}
+		actionID = luActionData[0].ID
 		reqsave.STATE = in.Request.STATE
-		reqsave.CLOSED = in.Request.CLOSED
+		reqsave.CLOSED = luActionData[0].CLOSED
 		reqsave.STATUS = in.Request.STATUS
-		reqsave.STAMP_DATE = create_time(in.Request.STAMP_DATE)
+		reqsave.STAMP_DATE = &timeNow //create_time(in.Request.STAMP_DATE)
+		adding = false
 	} else {
 		reqno, err := req.GetMax("FORM_NO", *in.Request.ApplicationType)
 		if err != nil {
@@ -1335,6 +1365,29 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 		if reqno == nil {
 			return nil, errors.New("لم يتم تحديد رقم الطلب")
 		}
+		luActionData, err := luActions.GetByStartUp(true, *in.Request.ApplicationType)
+		if err != nil {
+			return nil, err
+		}
+		if len(luActionData) == 0 {
+			return nil, errors.New("لم يتم تحديد بدايه مرحله الطلب")
+		}
+		if luActionData[0].NEXT_STATE == nil {
+			return nil, errors.New("لم يتم تحديد بدايه مرحله الطلب")
+		}
+		if luActionData[0].CURRENT_STATE == nil {
+			return nil, errors.New("لم يتم تحديد بدايه اجراء الطلب")
+		}
+		luStateData, err := luStates.GetByID(*luActionData[0].NEXT_STATE)
+		if err != nil {
+			return nil, err
+		}
+		if len(luStateData) == 0 {
+			return nil, errors.New("لم يتم تحديد بدايه مرحله الطلب")
+		}
+		nextState = *luActionData[0].NEXT_STATE
+		lastState = *luActionData[0].CURRENT_STATE
+		actionID = luActionData[0].ID
 		reqsave = &dbmodels.CANCELLED_REQUEST{
 			FORM_NO:             *reqno,
 			APPLICATION_TYPE_ID: *in.Request.ApplicationType,
@@ -1344,96 +1397,80 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 			DOCUMENT_NO:         "",
 			REQUEST_DATE:        &timeNow,
 			REQUEST_BY:          &username,
-			//STATE:               in.Request.STATE,
-			CLOSED:     tools.ToBoolPointer(false),
-			STATUS:     in.Request.STATUS,
-			COMMENT:    tools.ToStringPointer(""),
-			COUNTER:    tools.Int32ToInt32Ptr(0),
-			SURNAME:    tools.ToStringPointer(""),
-			STAMP_DATE: &timeNow,
+			STATE:               luActionData[0].NEXT_STATE,
+			CLOSED:              tools.ToBoolPointer(false),
+			STATUS:              luStateData[0].DESCRIPTION,
+			COMMENT:             tools.ToStringPointer(""),
+			COUNTER:             tools.Int32ToInt32Ptr(0),
+			SURNAME:             tools.ToStringPointer(""),
+			STAMP_DATE:          &timeNow,
 		}
 	}
-
-	var satatesr irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	var intiActr irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	var actionr irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-
-	actionsData, err := actionr.GetByFormNo(reqsave.FORM_NO)
-	if err != nil {
-		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-	}
-	if len(actionsData) > 2 {
-		return nil, sendError(codes.AlreadyExists, "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب", "لا يمكن حفظ الطلب لوجود اجراءات تمت على الطلب")
-	}
-	if reqsave.STATE == nil || *reqsave.STATE == 0 {
-		stateId := int32(0)
-		intiActData, err := intiActr.GetByStartUp(true, *in.Request.ApplicationType)
-		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-		}
-		if len(actionsData) == 0 {
-			if len(intiActData) != 0 {
-				if intiActData[0].NEXT_STATE != nil {
-					stateId = *intiActData[0].NEXT_STATE
-				}
-				cancelbillactionSave := &dbmodels.CANCELLED_BILLS_ACTION{
-					FORM_NO:     reqsave.FORM_NO,
-					CUSTKEY:     "",
-					STAMP_DATE:  &timeNow,
-					STAMP_USER:  user.USER_NAME,
-					COMMENT:     tools.ToStringPointer("تم ايقاف الفاتورة"),
-					ACTION_ID:   intiActData[0].ID,
-					DOCUMENT_NO: "",
-				}
-				dbr.Add(cancelbillactionSave)
-				if err != nil {
-					return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-				}
-			} else {
-				return nil, sendError(codes.InvalidArgument, "برجاء تعريف الاجراء الابتدائي للعملية", "برجاء تعريف الاجراء الابتدائي للعملية")
-			}
-		} else {
-			stateIdData, err := intiActr.GetByID(actionsData[0].ACTION_ID)
-			if err != nil {
-				return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-			}
-			if len(stateIdData) > 0 {
-				if stateIdData[0].CURRENT_STATE != nil {
-					stateId = *stateIdData[0].CURRENT_STATE
-				}
-			}
-		}
-		stateData, err := satatesr.GetByID(stateId)
-		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-		}
-		if len(stateData) == 0 {
-			return nil, sendError(codes.InvalidArgument, "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId), "حالة غير معرفة للفاتورة "+*tools.Int32ToString(&stateId))
-		}
-		reqsave.STATUS = stateData[0].DESCRIPTION
-		reqsave.STATE = &stateData[0].ID
-	}
-	if in.Request.FORM_NO == nil || (in.Request.FORM_NO != nil && *in.Request.FORM_NO == 0) {
+	if adding {
 		err = dbr.Add(reqsave)
-		if err != nil {
-			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
-		}
 	} else {
 		err = dbr.Save(reqsave)
+	}
+	if err != nil {
+		return nil, err
+	}
+	mapFields := make(map[string]*dbmodels.FIELDS)
+	apptypeGrFieldsData, err := apptype.GetAllGroupFieldsByActionID(actionID)
+	if err != nil {
+		return nil, err
+	}
+	for idx := range apptypeGrFieldsData {
+		apptypeGrField := apptypeGrFieldsData[idx]
+		apptypeFieldsData, err := apptype.GetAllFieldsByGroupID(apptypeGrField.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxf := range apptypeFieldsData {
+			apptypeField := apptypeFieldsData[idxf]
+			if apptypeField.IS_REQUIRED != nil && *apptypeField.IS_REQUIRED {
+				_, okf := in.Request.Entries[apptypeField.NAME]
+				if !okf {
+					return nil, errors.New("لابد من ادخال الحقل الاجباري " + apptypeField.NAME)
+				}
+			}
+			mapFields[apptypeField.NAME] = apptypeField
+		}
+	}
+	//Add Entries
+	for k, v := range in.Request.Entries {
+		fi, okf := mapFields[k]
+		if !okf {
+			return nil, errors.New("هذا الحقل غير موجود لهذا النوع  " + k)
+		}
+		actionApp := &dbmodels.APPLICATIONS_VALUES{
+			FORM_NO:             reqsave.FORM_NO,
+			APPLICATION_TYPE_ID: reqsave.APPLICATION_TYPE_ID,
+			FIELD_ID:            fi.ID,
+			FIELD_NAME:          fi.NAME,
+			STAMP_DATE:          timeNow,
+			ACTION_ID:           &actionID,
+			STAMP_USER:          user.USER_NAME,
+			USER_ID:             &user.ID,
+		}
+		if fi.DATA_TYPE == int32(pbdbMessages.DataType_BOOL) {
+			actionApp.FIELD_BOOL_VALUE = v.AsBoolean
+		} else if fi.DATA_TYPE == int32(pbdbMessages.DataType_DATE) || fi.DATA_TYPE == int32(pbdbMessages.DataType_DATETIME) {
+			actionApp.FIELD_DATE_VALUE = create_time(v.AsDate)
+		} else if fi.DATA_TYPE == int32(pbdbMessages.DataType_FLOAT) || fi.DATA_TYPE == int32(pbdbMessages.DataType_INT) || fi.DATA_TYPE == int32(pbdbMessages.DataType_LIST) {
+			actionApp.FIELD_NUMBER_VALUE = v.AsNumber
+		} else {
+			actionApp.FIELD_String_VALUE = v.AsString
+		}
+		err = dbr.Add(actionApp)
 		if err != nil {
 			return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 		}
 	}
-
-	// Add Entries
-	// for k, v := range in.Request.Entries {
-
-	// }
 	err = dbr.Commit()
 	if err != nil {
 		return nil, sendError(codes.InvalidArgument, err.Error(), err.Error())
 	}
-	DataJ := &pbMessages.SaveBillCancelRequestResponse{Message: tools.ToStringPointer("Done")}
+	DataJ := &pbMessages.SaveBillCancelRequestResponse{Message: tools.ToStringPointer("Done"), SaveId: &reqsave.FORM_NO}
 
 	log.Println("End SaveBillCancelRequest..")
 	return DataJ, nil

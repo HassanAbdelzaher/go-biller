@@ -1448,10 +1448,6 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 	if in.Request.CUSTKEY == nil || strings.TrimSpace(*in.Request.CUSTKEY) == "" {
 		return nil, errors.New("رقم الحساب غير صحيح")
 	}
-	stationno := ""
-	if in.Request.STATION_NO != nil {
-		stationno = *tools.Int32ToString(in.Request.STATION_NO)
-	}
 	username, _ := (*ctx).Value("username").(string)
 	conn, err := dbpool.GetConnection()
 	if err != nil {
@@ -1465,7 +1461,14 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 	if err != nil {
 		return nil, sendError(codes.Aborted, err.Error(), err.Error())
 	}
-
+	var handbill irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	handbillData, err := handbill.GetLastByCustkey(*in.Request.CUSTKEY)
+	if err != nil {
+		return nil, err
+	}
+	if handbillData == nil {
+		return nil, errors.New("العميل غير موجود")
+	}
 	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var req irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var luActions irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
@@ -1581,6 +1584,10 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 		commentreq := ""
 		if in.Request.COMMENT != nil {
 			commentreq = *in.Request.COMMENT
+		}
+		stationno := ""
+		if handbillData.STATION_NO != nil {
+			stationno = *tools.Int32ToString(handbillData.STATION_NO)
 		}
 		reqsave = &dbmodels.CANCELLED_REQUEST{
 			FORM_NO:             *reqno,

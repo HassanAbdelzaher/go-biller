@@ -23,6 +23,7 @@ import (
 	"golang.org/x/sync/syncmap"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -33,6 +34,17 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -390,6 +402,17 @@ func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *p
 	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("can not parse username")
 	}
 	if username == "" {
@@ -432,6 +455,17 @@ func getCustomerPaymentsP(ctx *context.Context, in *pbMessages.GetCustomerPaymen
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -560,6 +594,17 @@ func cancelledBillRequestP(ctx *context.Context, in *pbMessages.CancelledBillReq
 		return nil, sendError(codes.Internal, "قم بادخال رقم الطلب", err.Error())
 	}
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -722,6 +767,17 @@ func cancelledBillActionP(ctx *context.Context, in *pbMessages.CancelledBillActi
 		return nil, errors.New("برجاء تحديد الاجراء")
 	}
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -924,6 +980,17 @@ func billActionsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.B
 	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("can not parse username")
 	}
 	if username == "" {
@@ -969,6 +1036,17 @@ func billStatesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.Bi
 	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("can not parse username")
 	}
 	if username == "" {
@@ -1010,6 +1088,17 @@ func saveBillCancelRequestP(ctx *context.Context, in *pbMessages.SaveBillCancelR
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -1684,6 +1773,17 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("can not parse username")
 	}
 	if username == "" {
@@ -1786,6 +1886,17 @@ func getStationsP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.G
 	}()
 	username, ok := (*ctx).Value("username").(string)
 	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("can not parse username")
 	}
 	if username == "" {
@@ -1847,6 +1958,17 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -1932,6 +2054,17 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}
@@ -2106,6 +2239,17 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 		}
 	}()
 	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
 	if !ok {
 		return nil, errors.New("can not parse username")
 	}

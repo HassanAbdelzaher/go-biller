@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
 	"runtime/debug"
@@ -111,16 +112,21 @@ func create_time(t *timestamppb.Timestamp) *time.Time {
 }
 func Masservicesmain() {
 	port := 25567
+	port2 := 25569
 	flag.Parse()
 	opts := []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(middlewares.TokenAuthFunc)),
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.TokenAuthFunc)),
 	}
 	grpcServer := grpc.NewServer(opts...)
+	grpcServerh2 := grpc.NewServer()
 	log.Printf("serive listen:%v", port)
+	log.Printf("serivehttp2 listen:%v", port2)
 	cancelled.RegisterCollectionServer(grpcServer, &serverCollection{})
+	cancelled.RegisterCollectionServer(grpcServerh2, &serverCollection{})
 	wrappedServer := grpcweb.WrapServer(grpcServer /*, grpcweb.WithWebsockets(true)*/)
 	addr := fmt.Sprintf(":%v", port)
+	addrr := fmt.Sprintf(":%v", port2)
 	////STATIC FILE SERVER
 	//fsys := fs.FS(content)
 	//contentStatic, _ := fs.Sub(fsys, "public")
@@ -141,7 +147,16 @@ func Masservicesmain() {
 		),
 	}
 	log.Printf("starting service ...")
-	httpSrv.ListenAndServe()
+	go httpSrv.ListenAndServe()
+	lis, err := net.Listen("tcp", addrr)
+	if err != nil {
+		log.Fatalf("failed to serve: %s", err)
+		return
+	}
+	if err := grpcServerh2.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %s on port 25569", err)
+		return
+	}
 }
 
 func setupResponse(w http.ResponseWriter) {

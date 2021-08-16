@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -32,12 +33,14 @@ var content embed.FS
 
 func main() {
 	port := 25566
+	port2 := 25568
 	flag.Parse()
 	opts := []grpc.ServerOption{
 		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(middlewares.TokenAuthFunc)),
 		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(middlewares.TokenAuthFunc)),
 	}
 	grpcServer := grpc.NewServer(opts...)
+	grpcServerh2 := grpc.NewServer()
 	charger := &chrg.BillingChargeService{IsTrace: false}
 	masProvider := &prov.MasProvider{}
 	engi, err := engine.NewEngine(masProvider, charger, masProvider, masProvider)
@@ -50,7 +53,9 @@ func main() {
 		return
 	}
 	log.Printf("serive listen:%v", port)
+	log.Printf("serivehttp2 listen:%v", port2)
 	billing.RegisterEngineServer(grpcServer, engi)
+	billing.RegisterEngineServer(grpcServerh2, engi)
 	wrappedServer := grpcweb.WrapServer(grpcServer /*, grpcweb.WithWebsockets(true)*/)
 	/*go func() {
 		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 50551))
@@ -62,6 +67,7 @@ func main() {
 		grpcServer.Serve(lis)
 	}()*/
 	addr := fmt.Sprintf(":%v", port)
+	addrr := fmt.Sprintf(":%v", port2)
 	//STATIC FILE SERVER
 	fsys := fs.FS(content)
 	contentStatic, _ := fs.Sub(fsys, "public")
@@ -83,6 +89,12 @@ func main() {
 	}
 	log.Printf("starting service :%v", engine.VERSION)
 	go httpSrv.ListenAndServe()
+	lis, err := net.Listen("tcp", addrr)
+	if err != nil {
+		log.Fatalf("failed to serve: %s", err)
+		return
+	}
+	go grpcServerh2.Serve(lis)
 	masservices.Masservicesmain()
 }
 

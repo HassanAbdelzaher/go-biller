@@ -258,6 +258,7 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 		if err != nil {
 			return nil, err
 		}
+		appr.Entries = make(map[string]*pbdbMessages.FieldValue)
 		for idxv := range entris {
 			entryUse := entris[idxv]
 			appr.Entries[entryUse.FIELD_NAME] = &pbdbMessages.FieldValue{
@@ -1647,6 +1648,7 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 		if reqno == nil {
 			return nil, errors.New("لم يتم تحديد رقم الطلب")
 		}
+		reqnoF := *reqno + 1
 		luActionData, err := luActions.GetByStartUp(true, *in.Request.ApplicationType)
 		if err != nil {
 			return nil, err
@@ -1679,7 +1681,7 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 			stationno = *tools.Int32ToString(handbillData.STATION_NO)
 		}
 		reqsave = &dbmodels.CANCELLED_REQUEST{
-			FORM_NO:             *reqno,
+			FORM_NO:             reqnoF,
 			APPLICATION_TYPE_ID: *in.Request.ApplicationType,
 			CANCELLED:           tools.ToBoolPointer(false),
 			CUSTKEY:             *in.Request.CUSTKEY,
@@ -1711,6 +1713,27 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 	}
 	for idx := range apptypeGrFieldsData {
 		apptypeGrField := apptypeGrFieldsData[idx]
+		apptypeFieldsData, err := apptype.GetAllFieldsByGroupID(apptypeGrField.ID)
+		if err != nil {
+			return nil, err
+		}
+		for idxf := range apptypeFieldsData {
+			apptypeField := apptypeFieldsData[idxf]
+			if apptypeField.IS_REQUIRED != nil && *apptypeField.IS_REQUIRED {
+				_, okf := in.Request.Entries[apptypeField.NAME]
+				if !okf {
+					return nil, errors.New("لابد من ادخال الحقل الاجباري " + apptypeField.NAME)
+				}
+			}
+			mapFields[apptypeField.NAME] = apptypeField
+		}
+	}
+	apptypeGrFieldsDataa, err := apptype.GetAllGroupFieldsByApplicationTypeID(*in.Request.ApplicationType)
+	if err != nil {
+		return nil, err
+	}
+	for idx := range apptypeGrFieldsDataa {
+		apptypeGrField := apptypeGrFieldsDataa[idx]
 		apptypeFieldsData, err := apptype.GetAllFieldsByGroupID(apptypeGrField.ID)
 		if err != nil {
 			return nil, err

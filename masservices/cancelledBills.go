@@ -1746,7 +1746,7 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 			actionApp.FIELD_BOOL_VALUE = v.AsBoolean
 		} else if fi.DATA_TYPE == int32(pbdbMessages.DataType_DATE) || fi.DATA_TYPE == int32(pbdbMessages.DataType_DATETIME) {
 			actionApp.FIELD_DATE_VALUE = create_time(v.AsDate)
-		} else if fi.DATA_TYPE == int32(pbdbMessages.DataType_FLOAT) || fi.DATA_TYPE == int32(pbdbMessages.DataType_INT) || fi.DATA_TYPE == int32(pbdbMessages.DataType_LIST) {
+		} else if fi.DATA_TYPE == int32(pbdbMessages.DataType_FLOAT) || fi.DATA_TYPE == int32(pbdbMessages.DataType_INT) {
 			actionApp.FIELD_NUMBER_VALUE = v.AsNumber
 		} else {
 			actionApp.FIELD_String_VALUE = v.AsString
@@ -1805,6 +1805,7 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 	if err != nil {
 		return nil, err
 	}
+	var handr irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	cleanString(in.Custkey, nil, nil, nil)
@@ -1836,6 +1837,21 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 		if err != nil {
 			return nil, err
 		}
+		oldcl, err := handr.GetPaymentHST(cancelledBillsUse.PAYMENT_NO, nil, cancelledBillsUse.CUSTKEY, nil)
+		if err != nil {
+			return nil, err
+		}
+		if len(oldcl) <= 0 {
+			oldclhand, err := handr.GetPayment(cancelledBillsUse.PAYMENT_NO, nil, cancelledBillsUse.CUSTKEY, nil)
+			if err != nil {
+				return nil, err
+			}
+			if len(oldclhand) > 0 {
+				usj.CL_BLNCE = oldclhand[0].Cl_blnce
+			}
+		} else {
+			usj.CL_BLNCE = oldcl[0].Cl_blnce
+		}
 		if cancelledBillsUse.CUSTKEY != nil {
 			usj.CUSTKEY = cancelledBillsUse.CUSTKEY
 		} else {
@@ -1859,6 +1875,7 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 		usj.REQUEST_COMMENT = cancelledBillsUse.COMMENT
 		if len(lastaction) > 0 {
 			usj.ACTION_COMMENT = lastaction[0].COMMENT
+			usj.STAMP_DATE = create_timestamp(lastaction[0].STAMP_DATE)
 		}
 		usj.ACTIVITY = tools.ToStringPointer("")
 		usj.CALC_TYPE = tools.ToStringPointer("")

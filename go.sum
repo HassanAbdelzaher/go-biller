@@ -49,6 +49,8 @@ github.com/MaisrForAdvancedSystems/biller-mas-provider v1.132.0/go.mod h1:GppX0i
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.61.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.74.0 h1:OnnBj6pF2M8rooiCktFmPGS9yJWSMHxlxijPgGbbkjs=
 github.com/MaisrForAdvancedSystems/go-biller-proto v1.74.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
+github.com/MaisrForAdvancedSystems/go-biller-proto v1.75.0 h1:WMlERY1AjCFOZYVwL71cUDrYJ88GCScQDxkHH0wcFSg=
+github.com/MaisrForAdvancedSystems/go-biller-proto v1.75.0/go.mod h1:3AabUgir9R3Yuf//+Cndg/khJZvIS9VMW9YEKnXpFYY=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.89.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.107.0 h1:KPkC3VG9NuIK5QZisBbjj1BqHdXZUEH1bnoCfsY7wG4=
 github.com/MaisrForAdvancedSystems/mas-db-models v1.107.0/go.mod h1:CzsWw+gKAPcw0CJEcQxrgKvTKNxWGw/ylnF1paUN8lE=

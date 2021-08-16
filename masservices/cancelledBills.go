@@ -2143,8 +2143,11 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 					fieldUse := fieldActionData[idxField]
 					var fieldType pbdbMessages.DataType
 					fieldType = pbdbMessages.DataType(fieldUse.DATA_TYPE)
-					var fieldKind pbdbMessages.FieldKind
-					fieldKind = pbdbMessages.FieldKind(*fieldUse.KIND)
+					var fieldKind *pbdbMessages.FieldKind
+					if fieldUse.KIND != nil {
+						vfieldKind := pbdbMessages.FieldKind(*fieldUse.KIND)
+						fieldKind = &vfieldKind
+					}
 					UsjField := &pbdbMessages.Field{
 						Title:      fieldUse.TITLE,
 						Seq:        fieldUse.SEQ,
@@ -2152,7 +2155,7 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 						IsRequired: fieldUse.IS_REQUIRED,
 						Format:     fieldUse.FORMAT,
 						DataType:   &fieldType,
-						Kind:       &fieldKind,
+						Kind:       fieldKind,
 					}
 					fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
 					if err != nil {
@@ -2197,8 +2200,11 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 				fieldUse := fieldActionData[idxField]
 				var fieldType pbdbMessages.DataType
 				fieldType = pbdbMessages.DataType(fieldUse.DATA_TYPE)
-				var fieldKind pbdbMessages.FieldKind
-				fieldKind = pbdbMessages.FieldKind(*fieldUse.KIND)
+				var fieldKind *pbdbMessages.FieldKind
+				if fieldUse.KIND != nil {
+					vfieldKind := pbdbMessages.FieldKind(*fieldUse.KIND)
+					fieldKind = &vfieldKind
+				}
 				UsjField := &pbdbMessages.Field{
 					Title:      fieldUse.TITLE,
 					Seq:        fieldUse.SEQ,
@@ -2206,7 +2212,7 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 					IsRequired: fieldUse.IS_REQUIRED,
 					Format:     fieldUse.FORMAT,
 					DataType:   &fieldType,
-					Kind:       &fieldKind,
+					Kind:       fieldKind,
 				}
 				fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
 				if err != nil {

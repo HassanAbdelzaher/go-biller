@@ -249,7 +249,7 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 			STATUS:              appuse.STATUS,
 			SURNAME:             appuse.SURNAME,
 			COMMENT:             appuse.COMMENT,
-			CANCELLED:           appuse.CANCELLED,
+			IsCancelled:         appuse.CANCELLED,
 			CLOSED:              appuse.CLOSED,
 			ApplicationType:     &appuse.APPLICATION_TYPE_ID,
 			ApplicationTypeName: appty.DESCRIPTION,
@@ -308,7 +308,7 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 			edit   *bool
 		}
 		for idx := range cancelledBillsDataa {
-			cancelledBillsUsee := cancelledBillsData[idx]
+			cancelledBillsUsee := cancelledBillsDataa[idx]
 			wg.Add(1)
 			go func(wgg *sync.WaitGroup, cancelledBillsUse *dbmodels.CANCELLED_REQUEST) {
 				defer wgg.Done()
@@ -345,7 +345,7 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 		}
 		for idx := range cancelledBillsDataa {
 			usj := &pbdbMessages.CANCELLED_REQUEST{}
-			cancelledBillsUse := cancelledBillsData[idx]
+			cancelledBillsUse := cancelledBillsDataa[idx]
 			appty, err := apptype.GetTypeByID(cancelledBillsUse.APPLICATION_TYPE_ID)
 			if err != nil {
 				return nil, err
@@ -363,6 +363,7 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 				usj.EDITED = vstate.(formState).edit
 			}
 			usj.CLOSED = cancelledBillsUse.CLOSED
+			usj.IsCancelled = cancelledBillsUse.CANCELLED
 			if cancelledBillsUse.COMMENT == nil {
 				usj.COMMENT = &stringEmpty
 			} else {
@@ -377,6 +378,34 @@ func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.Cancell
 			usj.STATION_NO = tools.StringToInt32(&cancelledBillsUse.STATION_NO)
 			usj.STATUS = cancelledBillsUse.STATUS
 			usj.SURNAME = cancelledBillsUse.SURNAME
+			usj.ApplicationType = &appty.ID
+			usj.ApplicationTypeName = appty.DESCRIPTION
+
+			actions, err := cancelactions.GetByFormNo(cancelledBillsUse.FORM_NO, cancelledBillsUse.APPLICATION_TYPE_ID)
+			if err != nil {
+				return nil, err
+			}
+			for idxa := range actions {
+				actionUse := actions[idxa]
+				actionr := &pbdbMessages.CANCELLED_BILL_ACTION{
+					FORM_NO:     &actionUse.FORM_NO,
+					ACTION_ID:   &actionUse.ACTION_ID,
+					DOCUMENT_NO: &actionUse.DOCUMENT_NO,
+					CUSTKEY:     &actionUse.CUSTKEY,
+					COMMENT:     actionUse.COMMENT,
+					STAMP_DATE:  create_timestamp(actionUse.STAMP_DATE),
+					STAMP_USER:  actionUse.STAMP_USER,
+					USER_ID:     actionUse.USER_ID,
+				}
+				luData, err := luactions.GetByID(actionUse.ACTION_ID)
+				if err != nil {
+					return nil, err
+				}
+				if len(luData) != 0 {
+					actionr.DESCRIPTION = luData[0].DESCRIPTION
+				}
+				usj.Actions = append(usj.Actions, actionr)
+			}
 
 			DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
 		}
@@ -1126,7 +1155,24 @@ func saveBillCancelRequestType(ctx *context.Context, in *pbMessages.SaveBillCanc
 			err = errors.New(fmt.Sprintf("recover error:%v", r))
 		}
 	}()
-	username, _ := (*ctx).Value("username").(string)
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
@@ -1538,7 +1584,24 @@ func saveAppication(ctx *context.Context, in *pbMessages.SaveBillCancelRequestRe
 	if in.Request.CUSTKEY == nil || strings.TrimSpace(*in.Request.CUSTKEY) == "" {
 		return nil, errors.New("رقم الحساب غير صحيح")
 	}
-	username, _ := (*ctx).Value("username").(string)
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
@@ -1870,10 +1933,10 @@ func cancelBillsReportP(ctx *context.Context, in *pbMessages.CancelBillsReportRe
 				return nil, err
 			}
 			if len(oldclhand) > 0 {
-				usj.CL_BLNCE = oldclhand[0].Cl_blnce
+				usj.OLD_CL_BLNCE = oldclhand[0].Cl_blnce
 			}
 		} else {
-			usj.CL_BLNCE = oldcl[0].Cl_blnce
+			usj.OLD_CL_BLNCE = oldcl[0].Cl_blnce
 		}
 		if cancelledBillsUse.CUSTKEY != nil {
 			usj.CUSTKEY = cancelledBillsUse.CUSTKEY
@@ -2018,7 +2081,7 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 	if in.FormNo == nil {
 		return nil, errors.New("رقم الطلب غير صحيح")
 	}
-
+	applicationtype := int32(1)
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
@@ -2027,28 +2090,23 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 		conn.Debug = true
 		log.Println("connected")
 	}
+
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	req, err := cancelbill.GetByFormNo(*in.FormNo, 1)
+	req, err := cancelbill.GetByFormNoCustKeyTimeStamp(in.FormNo, &applicationtype, in.Custkey, create_time(in.StampFrom), create_time(in.StampTo), create_time(in.ReqFrom), create_time(in.ReqTo))
 	if err != nil {
 		return nil, err
 	}
-	if len(req) == 0 {
+	if len(req) == 0 && in.FormNo != nil {
 		return nil, errors.New("لا يوجد طلب بهذا الرقم")
 	}
-	if req[0].CLOSED != nil && *req[0].CLOSED {
+	if in.FormNo != nil && req[0].CLOSED != nil && *req[0].CLOSED {
 		return nil, errors.New("الطلب تم اغلاقه")
-	}
-	cleanString(&req[0].CUSTKEY, tools.ToStringPointer(""), nil, nil)
-	if strings.TrimSpace(req[0].CUSTKEY) == "" {
-		return nil, errors.New("رقم حساب العميل غير صحيح")
 	}
 	var ctgConTypeGr irespo.ICtgConsumptionTypeGroupsRepository = &respo.CtgConsumptionTypeGroupsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	ctgData, err := ctgConTypeGr.GetAll()
 	if err != nil {
 		return nil, err
 	}
-	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-
 	user, err := getUser(&username, conn)
 	if err != nil {
 		return nil, err
@@ -2057,32 +2115,63 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 	if err != nil {
 		return nil, err
 	}
-	bills, err := cancelbill.GetByBillsFormNo(*in.FormNo)
-	if err != nil {
-		return nil, err
-	}
+
+	var hand irespo.IHandMhStRepository = &respo.HandMhStRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 
 	DataJ := &pbMessages.GetFormNoPaymentsResponse{}
 	//var recep irespo.IReciptsRepository = &respo.ReciptsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	for idx := range bills {
-		billUse := bills[idx]
-		/*countReceipts, err := recep.GetCountByPaymentNoCancelled(billUse.PAYMENT_NO, false)
-		if err != nil {
-			return nil, err
+	for idxForm := range req {
+		reqOne := req[idxForm]
+		cleanString(&reqOne.CUSTKEY, tools.ToStringPointer(""), nil, nil)
+		if strings.TrimSpace(reqOne.CUSTKEY) == "" {
+			return nil, errors.New("رقم حساب العميل غير صحيح")
 		}
-		if countReceipts > 0 {
-			continue
-		}*/
-		usjOld, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(true))
-		if err != nil {
-			return nil, sendError(codes.Internal, err.Error(), err.Error())
+		usjForm := &pbMessages.GetFormNoPaymentsResponseItem{
+			FormNo:       &reqOne.FORM_NO,
+			Custkey:      &reqOne.CUSTKEY,
+			DOCUMENT_NO:  &reqOne.DOCUMENT_NO,
+			REQUEST_DATE: create_timestamp(reqOne.REQUEST_DATE),
+			Last_DATE:    create_timestamp(reqOne.STAMP_DATE),
 		}
-		usjNew, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(false))
-		if err != nil {
-			return nil, sendError(codes.Internal, err.Error(), err.Error())
+		var bills []*dbmodels.CANCELLED_BILL
+		countPaymemt := int32(0)
+		if in.WithOldNewBills == nil || !*in.WithOldNewBills {
+			countBills, err := cancelbill.GetByCountBillsFormNo(reqOne.FORM_NO)
+			if err != nil {
+				return nil, err
+			}
+			if countBills != nil {
+				countPaymemt = int32(*countBills)
+			}
+		} else {
+			bills, err = cancelbill.GetByBillsFormNo(reqOne.FORM_NO)
+			if err != nil {
+				return nil, err
+			}
+			countPaymemt = int32(len(bills))
 		}
-		usj := &serverhostmessages.OldNewItem{OldItem: usjOld, NewItem: usjNew}
-		DataJ.Items = append(DataJ.Items, usj)
+		usjForm.CountPayments = &countPaymemt
+		for idx := range bills {
+			billUse := bills[idx]
+			/*countReceipts, err := recep.GetCountByPaymentNoCancelled(billUse.PAYMENT_NO, false)
+			if err != nil {
+				return nil, err
+			}
+			if countReceipts > 0 {
+				continue
+			}*/
+			usjOld, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(true))
+			if err != nil {
+				return nil, sendError(codes.Internal, err.Error(), err.Error())
+			}
+			usjNew, err := getPayment(&billUse.PAYMENT_NO, &billUse.CUSTKEY, tools.ToBoolPointer(true), nil, nil, &hand, user, ctgData, conn, station, in.FormNo, tools.ToBoolPointer(false))
+			if err != nil {
+				return nil, sendError(codes.Internal, err.Error(), err.Error())
+			}
+			usj := &serverhostmessages.OldNewItem{OldItem: usjOld, NewItem: usjNew}
+			usjForm.Items = append(usjForm.Items, usj)
+		}
+		DataJ.Forms = append(DataJ.Forms, usjForm)
 	}
 	log.Println("end ..")
 	return DataJ, nil

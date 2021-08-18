@@ -2078,9 +2078,6 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 	if username == "" {
 		return nil, errors.New("missing username")
 	}
-	if in.FormNo == nil {
-		return nil, errors.New("رقم الطلب غير صحيح")
-	}
 	applicationtype := int32(1)
 	conn, err := dbpool.GetConnection()
 	if err != nil {

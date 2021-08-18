@@ -73,6 +73,28 @@ func getStation(_stationNo *int64, conn *lama.Lama) (*dbmodels.STATIONS, error) 
 	}
 	return station, nil
 }
+func getSetting(keyWord string, conn *lama.Lama) (*dbmodels.SETTINGS, error) {
+	var sett irespo.ICommonRepository = &respo.CommonRepository{Lama: conn}
+	settingvalue, err := sett.GetSettingValue(keyWord)
+	if err != nil {
+		return nil, err
+	}
+	if settingvalue == nil {
+		return nil, errors.New("الاعداد غير موجود")
+	}
+	return settingvalue, nil
+}
+func getDeoartment(departmentID int32, conn *lama.Lama) (*dbmodels.DEPARTMENTS, error) {
+	var deps irespo.ICommonRepository = &respo.CommonRepository{Lama: conn}
+	dep, err := deps.GetDepartment(departmentID)
+	if err != nil {
+		return nil, err
+	}
+	if dep == nil {
+		return nil, errors.New("القسم غير موجود")
+	}
+	return dep, nil
+}
 func throwsIfStationNoInvalied(user *dbmodels.USERS, stationNo *int32, conn *lama.Lama) error {
 	station := int32(-99)
 	if stationNo == nil {
@@ -487,6 +509,21 @@ func (s *serverCollection) SaveApplicationType(ctx context.Context, in *pbMessag
 	}()
 	log.Println(".... SaveApplicationType ....")
 	Data, err := saveApplicationTypeP(&ctx, in)
+	if err != nil {
+		return Data, err
+	}
+	return Data, nil
+}
+
+// GetUser implements
+func (s *serverCollection) GetUser(ctx context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetUserResponse, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at GetUser %v", string(debug.Stack())))
+		}
+	}()
+	log.Println(".... GetUser ....")
+	Data, err := getUserP(&ctx, in)
 	if err != nil {
 		return Data, err
 	}

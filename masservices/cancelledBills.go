@@ -2092,7 +2092,7 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 	}
 
 	var cancelbill irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	req, err := cancelbill.GetByFormNoCustKeyTimeStamp(in.FormNo, &applicationtype, in.Custkey, create_time(in.StampFrom), create_time(in.StampTo), create_time(in.ReqFrom), create_time(in.ReqTo))
+	req, err := cancelbill.GetByFormNoCustKeyTimeStamp(in.FormNo, &applicationtype, in.Custkey, create_time(in.StampFrom), create_time(in.StampTo), create_time(in.ReqFrom), create_time(in.ReqTo), in.StationNo)
 	if err != nil {
 		return nil, err
 	}
@@ -2132,7 +2132,15 @@ func getFormNoPaymentsP(ctx *context.Context, in *pbMessages.GetFormNoPaymentsRe
 			DOCUMENT_NO:  &reqOne.DOCUMENT_NO,
 			REQUEST_DATE: create_timestamp(reqOne.REQUEST_DATE),
 			Last_DATE:    create_timestamp(reqOne.STAMP_DATE),
+			StationNo:    tools.StringToInt32(&reqOne.STATION_NO),
+			Status:       reqOne.STATE,
+			StatusName:   reqOne.STATUS,
 		}
+		stationReqone, err := getStation(tools.StringToInt64(&reqOne.STATION_NO), conn)
+		if err != nil {
+			return nil, err
+		}
+		usjForm.StationName = stationReqone.DESCRIPTION
 		var bills []*dbmodels.CANCELLED_BILL
 		countPaymemt := int32(0)
 		if in.WithOldNewBills == nil || !*in.WithOldNewBills {
@@ -2915,5 +2923,88 @@ func saveApplicationTypeP(ctx *context.Context, in *pbMessages.SaveApplicationTy
 	DataJ.Message = tools.ToStringPointer("تم حفظ نوع الطلب")
 	DataJ.SaveId = tools.Int32PtrToInt64Ptr(&apptypeData.ID)
 	log.Println("end ..")
+	return DataJ, nil
+}
+func getUserP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMessages.GetUserResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("recover error:%v", r))
+		}
+	}()
+	username, ok := (*ctx).Value("username").(string)
+	if !ok {
+		md, _ := metadata.FromIncomingContext(*ctx)
+		for k, v := range md {
+			if len(v) > 0 {
+				if strings.ToLower(k) == "username" {
+					username = v[0]
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
+		return nil, errors.New("can not parse username")
+	}
+	if username == "" {
+		return nil, errors.New("missing username")
+	}
+	conn, err := dbpool.GetConnection()
+	if err != nil {
+		log.Println(err)
+		return nil, sendError(codes.Internal, err.Error(), err.Error())
+	} else {
+		conn.Debug = true
+		log.Println("connected")
+	}
+	DataJ := &pbMessages.GetUserResponse{}
+	user, err := getUser(&username, conn)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil {
+		DataJ = &pbMessages.GetUserResponse{
+			UserID:       &user.ID,
+			UserName:     user.FULL_NAME,
+			StationMo:    tools.Int64PtrToInt32Ptr(user.STATION_NO),
+			DepartmentID: user.DEPARTMENT,
+		}
+	}
+	station, err := getStation(user.STATION_NO, conn)
+	if err != nil {
+		return nil, err
+	}
+	if station == nil {
+		return nil, errors.New("Station Not Found")
+	}
+	DataJ.StationName = station.DESCRIPTION
+	settingvalue, err := getSetting("COMPANY_NAME", conn)
+	if err != nil {
+		return nil, err
+	}
+	if settingvalue == nil {
+		return nil, errors.New("setting Not Found")
+	}
+	DataJ.CompanyName = &settingvalue.KEY_VALUE
+	settingLogo, err := getSetting("COMPANY_LOGO", conn)
+	if err != nil {
+		return nil, err
+	}
+	if settingLogo == nil {
+		return nil, errors.New("setting Not Found")
+	}
+	DataJ.CompanyLogo = &settingLogo.KEY_VALUE
+	if user.DEPARTMENT != nil {
+		department, err := getDeoartment(*user.DEPARTMENT, conn)
+		if err != nil {
+			return nil, err
+		}
+		if department == nil {
+			return nil, errors.New("department Not Found")
+		}
+		DataJ.DepartmentName = &department.DESCRIPTION
+	}
+
+	log.Println("End GetUser..")
 	return DataJ, nil
 }

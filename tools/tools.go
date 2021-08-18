@@ -53,6 +53,13 @@ func Int32PtrToInt64Ptr(fl *int32) *int64 {
 	return ToIntPointer(int64(*fl))
 }
 
+func Int64PtrToInt32Ptr(fl *int64) *int32 {
+	if fl == nil {
+		return nil
+	}
+	return Int32ToInt32Ptr(int32(*fl))
+}
+
 func Int32ToInt32Ptr(fl int32) *int32 {
 	return &fl
 }
@@ -119,6 +126,18 @@ func StringToInt32(f *string) *int32 {
 		return nil
 	}
 	r := int32(i)
+	return &r
+}
+
+func StringToInt64(f *string) *int64 {
+	if f == nil {
+		return nil
+	}
+	i, err := strconv.Atoi(*f)
+	if err != nil {
+		return nil
+	}
+	r := int64(i)
 	return &r
 }
 

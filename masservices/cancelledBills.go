@@ -51,9 +51,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	if username == "" {
 		return nil, errors.New("missing username")
 	}
-	if in.Custkey != nil {
-		return applicationsCustkey(in.Custkey, in.State)
-	}
+
 	conn, err := dbpool.GetConnection()
 	if err != nil {
 		log.Println(err)
@@ -77,45 +75,50 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	var cancelledBillsAction irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var lucancelledBillsAction irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var lucancelledBillsState irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
+	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
 	var cancelledBillsData []*dbmodels.CANCELLED_REQUEST
-	inclose := false
-	if in.State == nil {
-		inclose = true
+	var ReqClose *bool
+	if in.IncludeClose != nil && *in.IncludeClose {
+		ReqClose = nil
 	} else {
-		checkOpened, err := lucancelledBillsAction.GetByNextState(*in.State, 1)
+		ReqClose = tools.ToBoolPointer(false)
+	}
+	if in.State == nil && ReqClose != nil {
+		ReqClose = nil
+	} else if in.ApplicationType != nil && ReqClose != nil {
+		checkOpened, err := lucancelledBillsAction.GetByNextState(*in.State, *in.ApplicationType)
 		if err != nil {
 			return nil, err
 		}
 		for idxcheckes := range checkOpened {
 			if checkOpened[idxcheckes].CLOSED != nil && *checkOpened[idxcheckes].CLOSED {
-				inclose = true
+				ReqClose = nil
 				break
 			}
 		}
 	}
-	if in.State != nil && (station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0) {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatusStation(false, *in.State, station.STATION_NO, inclose, 1)
-	} else if in.State != nil {
-		cancelledBillsData, err = cancelledBills.GetByClosedStatus(false, *in.State, inclose, 1)
-	} else if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
-		cancelledBillsData, err = cancelledBills.GetByClosedStation(false, station.STATION_NO, inclose, 1)
+	var ReqStationNo *string
+	if station.IS_HEADQUARTERS != nil && *station.IS_HEADQUARTERS == 0 {
+		ReqStationNo = tools.Int32ToString(&station.STATION_NO)
 	} else {
-		cancelledBillsData, err = cancelledBills.GetByClosed(false, inclose, 1)
+		ReqStationNo = nil
 	}
-
+	cancelledBillsData, err = cancelledBills.GetByReq(ReqClose, in.State, in.ApplicationType, in.Custkey, ReqStationNo)
 	if err != nil {
 		return nil, err
 	}
 	DataJ := &pbMessages.CancelledBillListResponse{}
-	stringEmpty := ""
 
-	lastactions := syncmap.Map{}
 	lastactionsStates := syncmap.Map{}
 	var wg sync.WaitGroup
 	var erro error
 	type formState struct {
-		cancel *bool
-		edit   *bool
+		cancel      *bool
+		edit        *bool
+		lasttime    *timestamppb.Timestamp
+		mapentries  map[string]*pbdbMessages.FieldValue
+		actions     []*pbdbMessages.CANCELLED_BILL_ACTION
+		appTypeName *string
 	}
 	for idx := range cancelledBillsData {
 		cancelledBillsUsee := cancelledBillsData[idx]
@@ -125,19 +128,39 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 			if erro != nil {
 				return
 			}
-			lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, in.State, 1)
+			var cancelState *int32 = nil
+			var cancelAppType int32 = 1
+			if in.State == nil {
+				cancelState = cancelledBillsUse.STATE
+			}
+			if in.ApplicationType == nil {
+				cancelAppType = cancelledBillsUse.APPLICATION_TYPE_ID
+			}
+			appty, err := apptype.GetTypeByID(cancelAppType)
 			if err != nil {
 				erro = err
 				return
 			}
-			formStateReq := formState{cancel: nil, edit: nil}
+			if appty == nil {
+				err = errors.New("النوع غير معرف")
+				erro = err
+				return
+			}
+			lastaction, err := cancelledBillsAction.GetByFormNoWithState(cancelledBillsUse.FORM_NO, cancelState, cancelAppType)
+			if err != nil {
+				erro = err
+				return
+			}
+			formStateReq := formState{}
+			formStateReq.appTypeName = appty.DESCRIPTION
 			if cancelledBillsUse.STATE != nil {
 				laststate, err := lucancelledBillsState.GetByID(*cancelledBillsUse.STATE)
 				if err != nil {
 					erro = err
 					return
 				}
-				formStateReq = formState{cancel: laststate[0].CANCELLED, edit: laststate[0].EDITED}
+				formStateReq.cancel = laststate[0].CANCELLED
+				formStateReq.edit = laststate[0].EDITED
 			}
 			var stamp *timestamppb.Timestamp
 			if len(lastaction) > 0 {
@@ -145,8 +168,49 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 			} else {
 				stamp = create_timestamp(cancelledBillsUse.STAMP_DATE)
 			}
-			//lastactions[cancelledBillsUse.FORM_NO] = stamp
-			lastactions.Store(cancelledBillsUse.FORM_NO, stamp)
+			formStateReq.lasttime = stamp
+			entris, err := apptype.GetAllEntries(cancelledBillsUse.FORM_NO, cancelAppType)
+			if err != nil {
+				erro = err
+				return
+			}
+			formStateReq.mapentries = make(map[string]*pbdbMessages.FieldValue)
+			for idxv := range entris {
+				entryUse := entris[idxv]
+				formStateReq.mapentries[entryUse.FIELD_NAME] = &pbdbMessages.FieldValue{
+					AsNumber:  entryUse.FIELD_NUMBER_VALUE,
+					AsString:  entryUse.FIELD_String_VALUE,
+					AsBoolean: entryUse.FIELD_BOOL_VALUE,
+					AsDate:    create_timestamp(entryUse.FIELD_DATE_VALUE),
+				}
+			}
+			actions, err := cancelledBillsAction.GetByFormNo(cancelledBillsUse.FORM_NO, cancelAppType)
+			if err != nil {
+				erro = err
+				return
+			}
+			for idxa := range actions {
+				actionUse := actions[idxa]
+				actionr := &pbdbMessages.CANCELLED_BILL_ACTION{
+					FORM_NO:     &actionUse.FORM_NO,
+					ACTION_ID:   &actionUse.ACTION_ID,
+					DOCUMENT_NO: &actionUse.DOCUMENT_NO,
+					CUSTKEY:     &actionUse.CUSTKEY,
+					COMMENT:     actionUse.COMMENT,
+					STAMP_DATE:  create_timestamp(actionUse.STAMP_DATE),
+					STAMP_USER:  actionUse.STAMP_USER,
+					USER_ID:     actionUse.USER_ID,
+				}
+				luData, err := lucancelledBillsAction.GetByID(actionUse.ACTION_ID)
+				if err != nil {
+					erro = err
+					return
+				}
+				if len(luData) != 0 {
+					actionr.DESCRIPTION = luData[0].DESCRIPTION
+				}
+				formStateReq.actions = append(formStateReq.actions, actionr)
+			}
 			lastactionsStates.Store(cancelledBillsUse.FORM_NO, formStateReq)
 		}(&wg, cancelledBillsUsee)
 	}
@@ -155,34 +219,39 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 		return nil, erro
 	}
 	for idx := range cancelledBillsData {
-		usj := &pbdbMessages.CANCELLED_REQUEST{}
 		cancelledBillsUse := cancelledBillsData[idx]
-		//usj.STAMP_DATE = lastactions[cancelledBillsUse.FORM_NO]
-		v, ok := lastactions.Load(cancelledBillsUse.FORM_NO)
-		if ok {
-			usj.STAMP_DATE = v.(*timestamppb.Timestamp)
-		}
 		vstate, ok := lastactionsStates.Load(cancelledBillsUse.FORM_NO)
+		var v_formState *formState
 		if ok {
-			usj.CANCELLED = vstate.(formState).cancel
-			usj.EDITED = vstate.(formState).edit
+			vformState := vstate.(formState)
+			v_formState = &vformState
 		}
-		usj.CLOSED = cancelledBillsUse.CLOSED
+		usj := &pbdbMessages.CANCELLED_REQUEST{
+			CUSTKEY:         &cancelledBillsUse.CUSTKEY,
+			STATION_NO:      tools.StringToInt32(&cancelledBillsUse.STATION_NO),
+			FORM_NO:         &cancelledBillsUse.FORM_NO,
+			DOCUMENT_NO:     &cancelledBillsUse.DOCUMENT_NO,
+			REQUEST_BY:      cancelledBillsUse.REQUEST_BY,
+			COUNTER:         cancelledBillsUse.COUNTER,
+			STATE:           cancelledBillsUse.STATE,
+			REQUEST_DATE:    create_timestamp(cancelledBillsUse.REQUEST_DATE),
+			STATUS:          cancelledBillsUse.STATUS,
+			SURNAME:         cancelledBillsUse.SURNAME,
+			IsCancelled:     cancelledBillsUse.CANCELLED,
+			CLOSED:          cancelledBillsUse.CLOSED,
+			ApplicationType: &cancelledBillsUse.APPLICATION_TYPE_ID,
+		}
+		if v_formState != nil {
+			usj.CANCELLED = v_formState.cancel
+			usj.EDITED = v_formState.edit
+			usj.STAMP_DATE = v_formState.lasttime
+		}
 		if cancelledBillsUse.COMMENT == nil {
-			usj.COMMENT = &stringEmpty
+			usj.COMMENT = tools.ToStringPointer("")
 		} else {
 			usj.COMMENT = cancelledBillsUse.COMMENT
 		}
-		usj.CUSTKEY = &cancelledBillsUse.CUSTKEY
-		usj.DOCUMENT_NO = &cancelledBillsUse.DOCUMENT_NO
-		usj.FORM_NO = &cancelledBillsUse.FORM_NO
-		usj.REQUEST_BY = cancelledBillsUse.REQUEST_BY
-		usj.REQUEST_DATE = create_timestamp(cancelledBillsUse.REQUEST_DATE)
-		usj.STATE = cancelledBillsUse.STATE
-		usj.STATION_NO = tools.StringToInt32(&cancelledBillsUse.STATION_NO)
-		usj.STATUS = cancelledBillsUse.STATUS
-		usj.SURNAME = cancelledBillsUse.SURNAME
-
+		usj.ApplicationTypeName = v_formState.appTypeName
 		DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
 	}
 	sort.SliceStable(DataJ.CancelledBillList, func(i, j int) bool {
@@ -198,232 +267,7 @@ func cancelledBillListP(ctx *context.Context, in *pbMessages.CancelledBillListRe
 	log.Println("End cancelledBillList..")
 	return DataJ, nil
 }
-func applicationsCustkey(custKey *string, state *int32) (rsp *pbMessages.CancelledBillListResponse, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = errors.New(fmt.Sprintf("recover error:%v", r))
-		}
-	}()
-	conn, err := dbpool.GetConnection()
-	if err != nil {
-		log.Println(err)
-		return nil, sendError(codes.Internal, err.Error(), err.Error())
-	} else {
-		conn.Debug = true
-		log.Println("connected")
-	}
-	var cancelledBills irespo.ICancelledBillsRepository = &respo.CancelledBillsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	cancelledBillsData, err := cancelledBills.GetByCust(*custKey)
-	if err != nil {
-		return nil, err
-	}
-	var apptype irespo.IApplicationTypesRepository = &respo.ApplicationTypesRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	var cancelactions irespo.ICancelledBillActionsRepository = &respo.CancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	var luactions irespo.ILuCancelledBillActionsRepository = &respo.LuCancelledBillActionsRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	var luStates irespo.ILuCancelledBillStatessRepository = &respo.LuCancelledBillStatessRepository{CommonRepository: respo.CommonRepository{Lama: conn}}
-	DataJ := &pbMessages.CancelledBillListResponse{}
-	cancelledBillsDataa := []*dbmodels.CANCELLED_REQUEST{}
-	for idx := range cancelledBillsData {
-		appuse := cancelledBillsData[idx]
-		if appuse.APPLICATION_TYPE_ID == 1 {
-			cancelledBillsDataa = append(cancelledBillsDataa, appuse)
-			continue
-		}
-		appty, err := apptype.GetTypeByID(appuse.APPLICATION_TYPE_ID)
-		if err != nil {
-			return nil, err
-		}
-		if appty == nil {
-			return nil, errors.New("النوع غير معرف")
-		}
-		appr := &pbdbMessages.CANCELLED_REQUEST{
-			CUSTKEY:             custKey,
-			STATION_NO:          tools.StringToInt32(&appuse.STATION_NO),
-			FORM_NO:             &appuse.FORM_NO,
-			DOCUMENT_NO:         &appuse.DOCUMENT_NO,
-			REQUEST_BY:          appuse.REQUEST_BY,
-			COUNTER:             appuse.COUNTER,
-			STATE:               appuse.STATE,
-			REQUEST_DATE:        create_timestamp(appuse.REQUEST_DATE),
-			STAMP_DATE:          create_timestamp(appuse.STAMP_DATE),
-			STATUS:              appuse.STATUS,
-			SURNAME:             appuse.SURNAME,
-			COMMENT:             appuse.COMMENT,
-			IsCancelled:         appuse.CANCELLED,
-			CLOSED:              appuse.CLOSED,
-			ApplicationType:     &appuse.APPLICATION_TYPE_ID,
-			ApplicationTypeName: appty.DESCRIPTION,
-		}
-		entris, err := apptype.GetAllEntries(appuse.FORM_NO, appuse.APPLICATION_TYPE_ID)
-		if err != nil {
-			return nil, err
-		}
-		appr.Entries = make(map[string]*pbdbMessages.FieldValue)
-		for idxv := range entris {
-			entryUse := entris[idxv]
-			appr.Entries[entryUse.FIELD_NAME] = &pbdbMessages.FieldValue{
-				AsNumber:  entryUse.FIELD_NUMBER_VALUE,
-				AsString:  entryUse.FIELD_String_VALUE,
-				AsBoolean: entryUse.FIELD_BOOL_VALUE,
-				AsDate:    create_timestamp(entryUse.FIELD_DATE_VALUE),
-			}
-		}
-		actions, err := cancelactions.GetByFormNo(appuse.FORM_NO, appuse.APPLICATION_TYPE_ID)
-		if err != nil {
-			return nil, err
-		}
-		for idxa := range actions {
-			actionUse := actions[idxa]
-			actionr := &pbdbMessages.CANCELLED_BILL_ACTION{
-				FORM_NO:     &actionUse.FORM_NO,
-				ACTION_ID:   &actionUse.ACTION_ID,
-				DOCUMENT_NO: &actionUse.DOCUMENT_NO,
-				CUSTKEY:     &actionUse.CUSTKEY,
-				COMMENT:     actionUse.COMMENT,
-				STAMP_DATE:  create_timestamp(actionUse.STAMP_DATE),
-				STAMP_USER:  actionUse.STAMP_USER,
-				USER_ID:     actionUse.USER_ID,
-			}
-			luData, err := luactions.GetByID(actionUse.ACTION_ID)
-			if err != nil {
-				return nil, err
-			}
-			if len(luData) != 0 {
-				actionr.DESCRIPTION = luData[0].DESCRIPTION
-			}
-			appr.Actions = append(appr.Actions, actionr)
-		}
-		DataJ.CancelledBillList = append(DataJ.CancelledBillList, appr)
-	}
 
-	if len(cancelledBillsDataa) > 0 {
-		stringEmpty := ""
-
-		lastactions := syncmap.Map{}
-		lastactionsStates := syncmap.Map{}
-		var wg sync.WaitGroup
-		var erro error
-		type formState struct {
-			cancel *bool
-			edit   *bool
-		}
-		for idx := range cancelledBillsDataa {
-			cancelledBillsUsee := cancelledBillsDataa[idx]
-			wg.Add(1)
-			go func(wgg *sync.WaitGroup, cancelledBillsUse *dbmodels.CANCELLED_REQUEST) {
-				defer wgg.Done()
-				if erro != nil {
-					return
-				}
-				lastaction, err := cancelactions.GetByFormNoWithState(cancelledBillsUse.FORM_NO, state, 1)
-				if err != nil {
-					erro = err
-					return
-				}
-				formStateReq := formState{cancel: nil, edit: nil}
-				if cancelledBillsUse.STATE != nil {
-					laststate, err := luStates.GetByID(*cancelledBillsUse.STATE)
-					if err != nil {
-						erro = err
-						return
-					}
-					formStateReq = formState{cancel: laststate[0].CANCELLED, edit: laststate[0].EDITED}
-				}
-				var stamp *timestamppb.Timestamp
-				if len(lastaction) > 0 {
-					stamp = create_timestamp(lastaction[0].STAMP_DATE)
-				} else {
-					stamp = create_timestamp(cancelledBillsUse.STAMP_DATE)
-				}
-				lastactions.Store(cancelledBillsUse.FORM_NO, stamp)
-				lastactionsStates.Store(cancelledBillsUse.FORM_NO, formStateReq)
-			}(&wg, cancelledBillsUsee)
-		}
-		wg.Wait()
-		if erro != nil {
-			return nil, erro
-		}
-		for idx := range cancelledBillsDataa {
-			usj := &pbdbMessages.CANCELLED_REQUEST{}
-			cancelledBillsUse := cancelledBillsDataa[idx]
-			appty, err := apptype.GetTypeByID(cancelledBillsUse.APPLICATION_TYPE_ID)
-			if err != nil {
-				return nil, err
-			}
-			if appty == nil {
-				return nil, errors.New("النوع غير معرف")
-			}
-			v, ok := lastactions.Load(cancelledBillsUse.FORM_NO)
-			if ok {
-				usj.STAMP_DATE = v.(*timestamppb.Timestamp)
-			}
-			vstate, ok := lastactionsStates.Load(cancelledBillsUse.FORM_NO)
-			if ok {
-				usj.CANCELLED = vstate.(formState).cancel
-				usj.EDITED = vstate.(formState).edit
-			}
-			usj.CLOSED = cancelledBillsUse.CLOSED
-			usj.IsCancelled = cancelledBillsUse.CANCELLED
-			if cancelledBillsUse.COMMENT == nil {
-				usj.COMMENT = &stringEmpty
-			} else {
-				usj.COMMENT = cancelledBillsUse.COMMENT
-			}
-			usj.CUSTKEY = &cancelledBillsUse.CUSTKEY
-			usj.DOCUMENT_NO = &cancelledBillsUse.DOCUMENT_NO
-			usj.FORM_NO = &cancelledBillsUse.FORM_NO
-			usj.REQUEST_BY = cancelledBillsUse.REQUEST_BY
-			usj.REQUEST_DATE = create_timestamp(cancelledBillsUse.REQUEST_DATE)
-			usj.STATE = cancelledBillsUse.STATE
-			usj.STATION_NO = tools.StringToInt32(&cancelledBillsUse.STATION_NO)
-			usj.STATUS = cancelledBillsUse.STATUS
-			usj.SURNAME = cancelledBillsUse.SURNAME
-			usj.ApplicationType = &appty.ID
-			usj.ApplicationTypeName = appty.DESCRIPTION
-
-			actions, err := cancelactions.GetByFormNo(cancelledBillsUse.FORM_NO, cancelledBillsUse.APPLICATION_TYPE_ID)
-			if err != nil {
-				return nil, err
-			}
-			for idxa := range actions {
-				actionUse := actions[idxa]
-				actionr := &pbdbMessages.CANCELLED_BILL_ACTION{
-					FORM_NO:     &actionUse.FORM_NO,
-					ACTION_ID:   &actionUse.ACTION_ID,
-					DOCUMENT_NO: &actionUse.DOCUMENT_NO,
-					CUSTKEY:     &actionUse.CUSTKEY,
-					COMMENT:     actionUse.COMMENT,
-					STAMP_DATE:  create_timestamp(actionUse.STAMP_DATE),
-					STAMP_USER:  actionUse.STAMP_USER,
-					USER_ID:     actionUse.USER_ID,
-				}
-				luData, err := luactions.GetByID(actionUse.ACTION_ID)
-				if err != nil {
-					return nil, err
-				}
-				if len(luData) != 0 {
-					actionr.DESCRIPTION = luData[0].DESCRIPTION
-				}
-				usj.Actions = append(usj.Actions, actionr)
-			}
-
-			DataJ.CancelledBillList = append(DataJ.CancelledBillList, usj)
-		}
-	}
-
-	sort.SliceStable(DataJ.CancelledBillList, func(i, j int) bool {
-		if DataJ.CancelledBillList[i].STAMP_DATE == nil && DataJ.CancelledBillList[j].STAMP_DATE == nil {
-			return false
-		} else if DataJ.CancelledBillList[i].STAMP_DATE == nil {
-			return false
-		} else if DataJ.CancelledBillList[j].STAMP_DATE == nil {
-			return true
-		}
-		return (*DataJ.CancelledBillList[i].STAMP_DATE).AsTime().After((*DataJ.CancelledBillList[j].STAMP_DATE).AsTime())
-	})
-	log.Println("End cancelledBillList..")
-	return DataJ, nil
-}
 func getPaymentP(ctx *context.Context, in *pbMessages.GetPaymentRequest) (rsp *pbMessages.GetPaymentResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2228,6 +2072,9 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 		Usj.Id = &applicationtypeUse.ID
 		Usj.Description = applicationtypeUse.DESCRIPTION
 		Usj.Seq = applicationtypeUse.SEQ
+		if applicationtypeUse.ICON != nil {
+			Usj.Icon = tools.ToStringPointer(string((*applicationtypeUse.ICON)[:]))
+		}
 		appStatesData, err := appStates.GetByApplicationTypeID(applicationtypeUse.ID)
 		if err != nil {
 			return nil, err
@@ -2266,8 +2113,9 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 			for idxFieldGroup := range fieldGroupActionData {
 				fieldGroupUse := fieldGroupActionData[idxFieldGroup]
 				UsjFieldGroup := &pbdbMessages.FieldGroup{
-					Title: fieldGroupUse.TITLE,
-					Seq:   fieldGroupUse.SEQ,
+					Title:   fieldGroupUse.TITLE,
+					Seq:     fieldGroupUse.SEQ,
+					GroupID: &fieldGroupUse.ID,
 				}
 				fieldActionData, err := apptype.GetAllFieldsByGroupID(fieldGroupUse.ID)
 				if err != nil {
@@ -2290,6 +2138,7 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 						Format:     fieldUse.FORMAT,
 						DataType:   &fieldType,
 						Kind:       fieldKind,
+						GroupID:    &fieldGroupUse.ID,
 					}
 					fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
 					if err != nil {
@@ -2323,8 +2172,9 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 				continue
 			}
 			UsjFieldGroup := &pbdbMessages.FieldGroup{
-				Title: fieldGroupUse.TITLE,
-				Seq:   fieldGroupUse.SEQ,
+				Title:   fieldGroupUse.TITLE,
+				Seq:     fieldGroupUse.SEQ,
+				GroupID: &fieldGroupUse.ID,
 			}
 			fieldActionData, err := apptype.GetAllFieldsByGroupID(fieldGroupUse.ID)
 			if err != nil {
@@ -2347,6 +2197,7 @@ func getApplicationTypesP(ctx *context.Context, in *pbMessages.Empty) (rsp *pbMe
 					Format:     fieldUse.FORMAT,
 					DataType:   &fieldType,
 					Kind:       fieldKind,
+					GroupID:    &fieldGroupUse.ID,
 				}
 				fieldValueData, err := apptype.GetAllListValuesByFieldID(fieldUse.ID)
 				if err != nil {

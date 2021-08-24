@@ -5,9 +5,9 @@ go 1.16
 require (
 	github.com/HassanAbdelzaher/lama v1.90.0
 	github.com/MaisrForAdvancedSystems/biller-charger v1.90.0
-	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.132.0
-	github.com/MaisrForAdvancedSystems/go-biller-proto v1.80.0
-	github.com/MaisrForAdvancedSystems/mas-db-models v1.111.0
+	github.com/MaisrForAdvancedSystems/biller-mas-provider v1.134.0
+	github.com/MaisrForAdvancedSystems/go-biller-proto v1.82.0
+	github.com/MaisrForAdvancedSystems/mas-db-models v1.112.0
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/protobuf v1.5.2

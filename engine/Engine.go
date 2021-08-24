@@ -276,6 +276,18 @@ func (e *Engine) HandleRequest(cont context.Context, key string, setting *billin
 	}
 	return charges, nil
 }
+func (e *Engine) PostOne(cont context.Context, msg *billing.PostMessage) (resp *billing.Empty, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			err = errors.New(fmt.Sprintf("panic at Confirm %v", string(debug.Stack())))
+		}
+	}()
+	_, err = e.DataConsumer.WriteFinantialDataOne(cont, msg)
+	if err != nil {
+		log.Println("Engine:Confirm Error ", err.Error())
+	}
+	return &billing.Empty{}, err
+}
 func (e *Engine) Post(cont context.Context, msg *billing.PostMessage) (resp *billing.Empty, err error) {
 	defer func() {
 		if er := recover(); er != nil {
